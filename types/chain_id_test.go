@@ -22,6 +22,9 @@ func TestParseChainID(t *testing.T) {
 			"valid chain-id, multiple digits", "aragonchain_256-1", false, big.NewInt(256),
 		},
 		{
+			"valid chain-id, single digit", "Oraichain", false, hashChainIdToInt("Oraichain"),
+		},
+		{
 			"invalid chain-id, double dash", "aragonchain-1-1", false, hashChainIdToInt("aragonchain-1-1"),
 		},
 		{
