@@ -135,6 +135,12 @@ protoLinter=$(DOCKER) run --rm -v "$(CURDIR):/workspace" --workdir /workspace --
 #
 proto-all: proto-format proto-lint proto-gen
 
+proto-gen-new:
+	@echo "Generating go proto files"
+	@buf generate --template proto/buf.gen.gogo.yaml proto
+	@cp -r out/github.com/cosmos/evm/* ./
+	@rm -rf out/github.com
+
 proto-gen:
 	@echo "generating implementations from Protobuf files"
 	@$(protoImage) sh ./scripts/generate_protos.sh

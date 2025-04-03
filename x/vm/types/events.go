@@ -2,10 +2,12 @@ package types
 
 // Evm module events
 const (
-	EventTypeEthereumTx = TypeMsgEthereumTx
-	EventTypeBlockBloom = "block_bloom"
-	EventTypeTxLog      = "tx_log"
-	EventTypeFeeMarket  = "evm_fee_market"
+	EventTypeEthereumTx              = TypeMsgEthereumTx
+	EventTypeBlockBloom              = "block_bloom"
+	EventTypeTxLog                   = "tx_log"
+	EventTypeFeeMarket               = "evm_fee_market"
+	EventTypeSetMappingEvmAddress    = "set_mapping_evm_address"
+	EventTypeDeleteMappingEvmAddress = "delete_mapping_evm_address"
 
 	AttributeKeyBaseFee         = "base_fee"
 	AttributeKeyContractAddress = "contract"
@@ -24,4 +26,9 @@ const (
 
 	MetricKeyTransitionDB = "transition_db"
 	MetricKeyStaticCall   = "static_call"
+
+	// Event Attributes - EVM Mapping address
+	AttributeKeyCosmosAddress = "cosmos_address"
+	AttributeKeyEvmAddress    = "evm_address"
+	AttributeKeyPubkey        = "pubkey"
 )
