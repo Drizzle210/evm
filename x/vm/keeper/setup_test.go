@@ -87,6 +87,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	s.factory = tf
 	s.handler = gh
 	s.keyring = keys
+	s.ctx = suite.network.GetContext()
 
 	chainConfig := evmtypes.DefaultChainConfig(suite.network.GetChainID())
 	if !s.enableLondonHF {

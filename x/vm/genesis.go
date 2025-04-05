@@ -30,7 +30,7 @@ func InitGenesis(
 
 	for _, account := range data.Accounts {
 		address := common.HexToAddress(account.Address)
-		accAddress := sdk.AccAddress(address.Bytes())
+		accAddress := k.GetCosmosAddressMapping(ctx, address)
 
 		// check that the account is actually found in the account keeper
 		acc := accountKeeper.GetAccount(ctx, accAddress)

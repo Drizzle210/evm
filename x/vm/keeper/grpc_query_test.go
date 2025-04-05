@@ -14,12 +14,12 @@ import (
 	"github.com/cosmos/evm/testutil/integration/os/factory"
 	testkeyring "github.com/cosmos/evm/testutil/integration/os/keyring"
 	"github.com/cosmos/evm/testutil/integration/os/network"
+	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
 	ethlogger "github.com/cosmos/evm/x/vm/core/logger"
 	"github.com/cosmos/evm/x/vm/core/vm"
 	"github.com/cosmos/evm/x/vm/keeper/testdata"
 	"github.com/cosmos/evm/x/vm/statedb"
 	"github.com/cosmos/evm/x/vm/types"
-	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -50,23 +50,21 @@ func (suite *KeeperTestSuite) TestQueryAccount() {
 		{
 			"success",
 			func() *types.QueryAccountRequest {
-				amt := sdk.Coins{sdk.NewInt64Coin(baseDenom, 100)}
+				coin := sdk.NewInt64Coin(baseDenom, 100)
+				mintedCoin := sdk.NewInt64Coin(baseDenom, 10000000000000000)
+				amt := sdk.Coins{coin}
+				err := suite.network.App.BankKeeper.MintCoins(suite.network.GetContext(), types.ModuleName, sdk.Coins{mintedCoin})
+				suite.Require().NoError(err)
 
 				// Add new unfunded key
 				index := suite.keyring.AddKey()
 				addr := suite.keyring.GetAddr(index)
-
-				err := suite.network.App.BankKeeper.MintCoins(
-					suite.network.GetContext(),
-					types.ModuleName,
-					amt,
-				)
-				suite.Require().NoError(err)
+				cosmosAddress := suite.network.App.EVMKeeper.GetCosmosAddressMapping(suite.network.GetContext(), addr)
 
 				err = suite.network.App.BankKeeper.SendCoinsFromModuleToAccount(
 					suite.network.GetContext(),
 					types.ModuleName,
-					addr.Bytes(),
+					cosmosAddress,
 					amt,
 				)
 				suite.Require().NoError(err)
@@ -143,9 +141,10 @@ func (suite *KeeperTestSuite) TestQueryCosmosAccount() {
 				index := suite.keyring.AddKey()
 				newKey := suite.keyring.GetKey(index)
 				accountNumber := uint64(100)
+				cosmosAddress := suite.network.App.EVMKeeper.GetCosmosAddressMapping(suite.network.GetContext(), newKey.Addr)
 				acc := suite.network.App.AccountKeeper.NewAccountWithAddress(
 					suite.network.GetContext(),
-					newKey.AccAddr,
+					cosmosAddress,
 				)
 
 				suite.Require().NoError(acc.SetSequence(10))
@@ -216,7 +215,8 @@ func (suite *KeeperTestSuite) TestQueryBalance() {
 
 				err := suite.network.App.BankKeeper.MintCoins(suite.network.GetContext(), types.ModuleName, amt)
 				suite.Require().NoError(err)
-				err = suite.network.App.BankKeeper.SendCoinsFromModuleToAccount(suite.network.GetContext(), types.ModuleName, addr.Bytes(), amt)
+				cosmosAddress := suite.network.App.EVMKeeper.GetCosmosAddressMapping(suite.network.GetContext(), addr)
+				err = suite.network.App.BankKeeper.SendCoinsFromModuleToAccount(suite.network.GetContext(), types.ModuleName, cosmosAddress, amt)
 				suite.Require().NoError(err)
 
 				req := &types.QueryBalanceRequest{

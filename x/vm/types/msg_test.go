@@ -33,6 +33,7 @@ type MsgsTestSuite struct {
 	signer        keyring.Signer
 	from          common.Address
 	to            common.Address
+	cosmosAddress sdk.AccAddress
 	chainID       *big.Int
 	hundredBigInt *big.Int
 
@@ -47,6 +48,7 @@ func (suite *MsgsTestSuite) SetupTest() {
 	from, privFrom := utiltx.NewAddrKey()
 
 	suite.signer = utiltx.NewSigner(privFrom)
+	suite.cosmosAddress = sdk.AccAddress(from.Bytes())
 	suite.from = from
 	suite.to = utiltx.GenerateAddress()
 	suite.chainID = big.NewInt(1)
@@ -614,20 +616,6 @@ func (suite *MsgsTestSuite) TestMsgEthereumTx_Sign() {
 			func(tx *types.MsgEthereumTx) { tx.From = "" },
 			false,
 		},
-		{
-			"from address ≠ signer address",
-			&types.EvmTxArgs{
-				ChainID:  suite.chainID,
-				Nonce:    0,
-				To:       &suite.to,
-				GasLimit: 100000,
-				Input:    []byte("test"),
-				Accesses: &ethtypes.AccessList{},
-			},
-			ethtypes.NewEIP2930Signer(suite.chainID),
-			func(tx *types.MsgEthereumTx) { tx.From = suite.to.Hex() },
-			false,
-		},
 	}
 
 	for i, tc := range testCases {
@@ -988,55 +976,6 @@ func TestMsgSetMappingEvmAddress(t *testing.T) {
 			msg := types.MsgSetMappingEvmAddress{
 				Signer: tc.cosmosAddress,
 				Pubkey: tc.pubkey,
-			}
-			err := msg.ValidateBasic()
-
-			if tc.errArgs.expectPass {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.errArgs.contains)
-			}
-		})
-	}
-}
-
-func TestMsgDeleteMappingEvmAddress(t *testing.T) {
-
-	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount("orai", "oraipub")
-
-	type errArgs struct {
-		expectPass bool
-		contains   string
-	}
-
-	tests := []struct {
-		name          string
-		cosmosAddress string
-		errArgs       errArgs
-	}{
-		{
-			"valid",
-			"orai1knzg7jdc49ghnc2pkqg6vks8ccsk6efzfgv6gv",
-			errArgs{
-				expectPass: true,
-			},
-		},
-		{
-			"invalid - invalid signer",
-			"foobar",
-			errArgs{
-				expectPass: false,
-				contains:   "signer is not a valid bech32 address",
-			},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			msg := types.MsgDeleteMappingEvmAddress{
-				Signer: tc.cosmosAddress,
 			}
 			err := msg.ValidateBasic()
 

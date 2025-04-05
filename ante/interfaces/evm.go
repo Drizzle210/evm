@@ -30,6 +30,7 @@ type EVMKeeper interface {
 	// GetMinGasPrice returns the MinGasPrice param from the fee market module
 	// adapted according to the evm denom decimals
 	GetMinGasPrice(ctx sdk.Context) math.LegacyDec
+	GetCosmosAddressMapping(ctx sdk.Context, evmAddress common.Address) sdk.AccAddress
 }
 
 // FeeMarketKeeper exposes the required feemarket keeper interface required for ante handlers
