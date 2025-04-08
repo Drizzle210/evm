@@ -47,11 +47,9 @@ func (k *Keeper) DeductTxCostsFromUserBalance(
 	from common.Address,
 ) error {
 	// fetch sender account
-	evmAddress := from
-	signer := k.GetCosmosAddressMapping(ctx, evmAddress)
-	signerAcc, err := authante.GetSignerAcc(ctx, k.accountKeeper, signer)
+	signerAcc, err := authante.GetSignerAcc(ctx, k.accountKeeper, from.Bytes())
 	if err != nil {
-		return errorsmod.Wrapf(err, "account not found for cosmos signer %s and evm address %s", signer, evmAddress)
+		return errorsmod.Wrapf(err, "account not found for sender %s", from)
 	}
 
 	// Deduct fees from the user balance. Notice that it is used

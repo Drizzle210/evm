@@ -105,7 +105,7 @@ func (k *Keeper) ForEachStorage(ctx sdk.Context, addr common.Address, cb func(ke
 
 // SetBalance update account's balance, compare with current balance first, then decide to mint or burn.
 func (k *Keeper) SetBalance(ctx sdk.Context, addr common.Address, amount *big.Int) error {
-	cosmosAddr := k.GetCosmosAddressMapping(ctx, addr)
+	cosmosAddr := sdk.AccAddress(addr.Bytes())
 
 	coin := k.bankWrapper.GetBalance(ctx, cosmosAddr, types.GetEVMCoinDenom())
 
@@ -239,7 +239,7 @@ func (k *Keeper) DeleteCode(ctx sdk.Context, codeHash []byte) {
 // - remove the code hash
 // - remove auth account
 func (k *Keeper) DeleteAccount(ctx sdk.Context, addr common.Address) error {
-	cosmosAddr := k.GetCosmosAddressMapping(ctx, addr)
+	cosmosAddr := sdk.AccAddress(addr.Bytes())
 	acct := k.accountKeeper.GetAccount(ctx, cosmosAddr)
 	if acct == nil {
 		return nil

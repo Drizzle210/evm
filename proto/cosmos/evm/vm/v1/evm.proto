@@ -1,3 +1,4 @@
+
 syntax = "proto3";
 package cosmos.evm.vm.v1;
 
@@ -20,8 +21,12 @@ message Params {
     (gogoproto.moretags) = "yaml:\"extra_eips\""
   ];
   // chain_config defines the EVM chain configuration parameters
-    ChainConfig chain_config = 5
-      [(gogoproto.moretags) = "yaml:\"chain_config\"", (amino.dont_omitempty) = true, (gogoproto.nullable) = false];
+  ChainConfig chain_config = 5 [
+    (gogoproto.moretags) = "yaml:\"chain_config\"",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
+
   // allow_unprotected_txs defines if replay-protected (i.e non EIP155
   // signed) transactions can be executed on the state machine.
   bool allow_unprotected_txs = 6;
