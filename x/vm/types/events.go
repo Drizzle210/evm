@@ -17,6 +17,9 @@ const (
 	AttributeKeyTxType          = "txType"
 	AttributeKeyTxLog           = "txLog"
 
+	EventTypeSetMappingEvmAddress    = "set_mapping_evm_address"
+	EventTypeDeleteMappingEvmAddress = "delete_mapping_evm_address"
+
 	// tx failed in eth vm execution
 	AttributeKeyEthereumTxFailed = "ethereumTxFailed"
 	AttributeValueCategory       = ModuleName
@@ -24,4 +27,9 @@ const (
 
 	MetricKeyTransitionDB = "transition_db"
 	MetricKeyStaticCall   = "static_call"
+
+	// Event Attributes - EVM Mapping address
+	AttributeKeyCosmosAddress = "cosmos_address"
+	AttributeKeyEvmAddress    = "evm_address"
+	AttributeKeyPubkey        = "pubkey"
 )
