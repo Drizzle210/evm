@@ -11,6 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
+	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/evm/crypto/ethsecp256k1"
@@ -344,7 +345,9 @@ func (suite *KeeperTestSuite) TestGetAccAddressBytesFromPubkey() {
 	compressedPubkeyBytes, _ := base64.StdEncoding.DecodeString(pubkeyString)
 	ethPubkey := ethsecp256k1.PubKey{Key: compressedPubkeyBytes}
 	cosmosPubkey := secp256k1.PubKey{Key: compressedPubkeyBytes}
+	multisigPubkey := kmultisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{&cosmosPubkey})
 	cosmosAddress := sdk.AccAddress(cosmosPubkey.Address().Bytes())
+	multisigAddress := sdk.AccAddress(multisigPubkey.Address().Bytes())
 	cosmosAddressFromEvm := sdk.AccAddress(ethPubkey.Address().Bytes())
 	evmAddress := common.BytesToAddress(ethPubkey.Address().Bytes())
 
@@ -357,6 +360,7 @@ func (suite *KeeperTestSuite) TestGetAccAddressBytesFromPubkey() {
 		name               string
 		errArgs            errArgs
 		pubkey             cryptotypes.PubKey
+		pubkeyType         string
 		expectedAccAddress string
 		malleate           func()
 	}{
@@ -366,7 +370,18 @@ func (suite *KeeperTestSuite) TestGetAccAddressBytesFromPubkey() {
 				expectPass: true,
 			},
 			&cosmosPubkey,
+			"secp256k1",
 			cosmosAddress.String(),
+			func() {},
+		},
+		{
+			"multisign pubkey valid",
+			errArgs{
+				expectPass: true,
+			},
+			multisigPubkey,
+			"PubKeyMultisigThreshold",
+			multisigAddress.String(),
 			func() {},
 		},
 		{
@@ -375,6 +390,7 @@ func (suite *KeeperTestSuite) TestGetAccAddressBytesFromPubkey() {
 				expectPass: true,
 			},
 			&ethPubkey,
+			"eth_secp256k1",
 			cosmosAddressFromEvm.String(),
 			func() {},
 		},
@@ -384,6 +400,7 @@ func (suite *KeeperTestSuite) TestGetAccAddressBytesFromPubkey() {
 				expectPass: true,
 			},
 			&ethPubkey,
+			"eth_secp256k1",
 			cosmosAddress.String(),
 			func() {
 				suite.network.App.EVMKeeper.SetAddressMapping(suite.ctx, cosmosAddress, evmAddress)
@@ -400,6 +417,7 @@ func (suite *KeeperTestSuite) TestGetAccAddressBytesFromPubkey() {
 			if tc.errArgs.expectPass {
 				suite.Require().NoError(err)
 				suite.Require().Equal(tc.expectedAccAddress, sdk.AccAddress(accAddress).String())
+				suite.Require().Equal(tc.pubkeyType, tc.pubkey.Type())
 			} else {
 				suite.Require().Error(err)
 				suite.Require().Contains(err.Error(), tc.errArgs.contains)
@@ -477,7 +495,7 @@ func (suite *KeeperTestSuite) TestValidateSignerEIP712Ante() {
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			tc.malleate()
-			err := suite.network.App.EVMKeeper.ValidateSignerEIP712Ante(suite.ctx, tc.pubkey, tc.signer)
+			err := suite.network.App.EVMKeeper.ValidateSignerAnte(suite.ctx, tc.pubkey, tc.signer)
 
 			if tc.errArgs.expectPass {
 				suite.Require().NoError(err)

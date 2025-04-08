@@ -32,7 +32,7 @@ type EVMKeeper interface {
 	// adapted according to the evm denom decimals
 	GetMinGasPrice(ctx sdk.Context) math.LegacyDec
 	GetCosmosAddressMapping(ctx sdk.Context, evmAddress common.Address) sdk.AccAddress
-	ValidateSignerEIP712Ante(ctx sdk.Context, pk cryptotypes.PubKey, signer sdk.AccAddress) error
+	ValidateSignerAnte(ctx sdk.Context, pk cryptotypes.PubKey, signer sdk.AccAddress) error
 }
 
 // FeeMarketKeeper exposes the required feemarket keeper interface required for ante handlers

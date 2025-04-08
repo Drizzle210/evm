@@ -14,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	"github.com/cosmos/evm/ante/testutils"
 	"github.com/cosmos/evm/crypto/ethsecp256k1"
+	evmtypes "github.com/cosmos/evm/x/vm/types"
 )
 
 func (suite *AnteTestSuite) CreateTestCosmosTxBuilder(gasPrice sdkmath.Int, denom string, msgs ...sdk.Msg) client.TxBuilder {
@@ -73,7 +74,7 @@ func generatePrivKeyAddressPairs(accCount int) ([]*ethsecp256k1.PrivKey, []sdk.A
 		if err != nil {
 			return nil, nil, err
 		}
-		testAddresses[i] = testPrivKeys[i].PubKey().Address().Bytes()
+		testAddresses[i], _ = evmtypes.PubkeyBytesToCosmosAddress(testPrivKeys[i].PubKey().Bytes())
 	}
 	return testPrivKeys, testAddresses, nil
 }
