@@ -41,6 +41,7 @@ var (
 	}
 )
 
+// NewParams creates a new Params instance
 func NewParams(
 	allowUnprotectedTxs bool,
 	extraEIPs []string,

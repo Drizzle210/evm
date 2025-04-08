@@ -12,8 +12,8 @@ import (
 	"github.com/cosmos/evm/testutil/integration/os/grpc"
 	"github.com/cosmos/evm/testutil/integration/os/keyring"
 	"github.com/cosmos/evm/testutil/integration/os/network"
-	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
+	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/suite"
 )
@@ -21,7 +21,6 @@ import (
 type KeeperTestSuite struct {
 	suite.Suite
 
-	ctx     sdk.Context
 	network *network.UnitTestNetwork
 	handler grpc.Handler
 	keyring keyring.Keyring
@@ -87,7 +86,6 @@ func (suite *KeeperTestSuite) SetupTest() {
 	s.factory = tf
 	s.handler = gh
 	s.keyring = keys
-	s.ctx = suite.network.GetContext()
 
 	chainConfig := evmtypes.DefaultChainConfig(suite.network.GetChainID())
 	if !s.enableLondonHF {

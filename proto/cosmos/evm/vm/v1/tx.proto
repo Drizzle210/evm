@@ -24,9 +24,6 @@ service Msg {
   // parameters. The authority is hard-coded to the Cosmos SDK x/gov module
   // account
   rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
-
-  // SetMappingEvmAddress defines a method for mapping an evm address to a cosmos address
-  rpc SetMappingEvmAddress(MsgSetMappingEvmAddress) returns (MsgSetMappingEvmAddressResponse);
 }
 
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
@@ -211,14 +208,3 @@ message MsgUpdateParams {
 // MsgUpdateParamsResponse defines the response structure for executing a
 // MsgUpdateParams message.
 message MsgUpdateParamsResponse {}
-
-// MsgSetMappingEvmAddress defines a mapping from cosmos address to evm address.
-message MsgSetMappingEvmAddress {
-  // signer cosmos address
-  string signer = 1;
-  // public key that we will use to map cosmos to evm.
-  string pubkey = 2;
-}
-
-// MsgSetMappingEvmAddressResponse defines the response value from Msg/SetMappingEvmAddress.
-message MsgSetMappingEvmAddressResponse {}
