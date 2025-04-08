@@ -120,3 +120,36 @@ func (suite *KeeperTestSuite) TestUpdateParams() {
 		suite.Require().NoError(err)
 	}
 }
+
+func (suite *KeeperTestSuite) TestMsgSetMappingEvmAddress() {
+	suite.SetupTest()
+	testCases := []struct {
+		name        string
+		getMsg      func() *types.MsgSetMappingEvmAddress
+		expectedErr error
+	}{
+		{
+			name: "success",
+			getMsg: func() *types.MsgSetMappingEvmAddress {
+				return &types.MsgSetMappingEvmAddress{
+					Signer: "cosmos13gv3v3042aw3nmyad2zt0lwytjgadpt0lqun8n",
+					Pubkey: "AvHLVeGs7ZLDo1zHISrtZFUITGQ4H5ubSVTZ8MWZGk3F",
+				}
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			msg := tc.getMsg()
+			_, err := suite.network.App.EVMKeeper.SetMappingEvmAddress(suite.network.GetContext(), msg)
+			if tc.expectedErr != nil {
+				suite.Require().Error(err)
+				suite.Contains(err.Error(), tc.expectedErr.Error())
+			} else {
+				suite.Require().NoError(err)
+			}
+		})
+	}
+}
