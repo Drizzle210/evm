@@ -12,6 +12,7 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmos/evm/x/vm/types"
 	"github.com/hashicorp/go-metrics"
@@ -141,4 +142,52 @@ func (k *Keeper) UpdateParams(goCtx context.Context, req *types.MsgUpdateParams)
 	}
 
 	return &types.MsgUpdateParamsResponse{}, nil
+}
+
+func (k *Keeper) SetMappingEvmAddress(
+	goCtx context.Context,
+	msg *types.MsgSetMappingEvmAddress,
+) (*types.MsgSetMappingEvmAddressResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	signer, err := sdk.AccAddressFromBech32(msg.Signer)
+	if err != nil {
+		return nil, errorsmod.Wrap(sdkerrors.ErrorInvalidSigner, fmt.Sprintf("invalid signer address: %s", err.Error()))
+	}
+
+	// already checked at validateBasic, but double check here to make sure
+	cosmosAddress, err := types.PubkeyToCosmosAddress(msg.Pubkey)
+	if err != nil {
+		return nil, err
+	}
+	if msg.Signer != cosmosAddress.String() {
+		return nil, errorsmod.Wrap(
+			sdkerrors.ErrInvalidPubKey,
+			"Signer does not match the given pubkey",
+		)
+	}
+
+	evmAddress, err := types.PubkeyToEVMAddress(msg.Pubkey)
+	if err != nil {
+		return nil, err
+	}
+
+	k.SetAddressMapping(ctx, signer, *evmAddress)
+
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeSetMappingEvmAddress,
+		sdk.NewAttribute(types.AttributeKeyCosmosAddress, msg.Signer),
+		sdk.NewAttribute(types.AttributeKeyEvmAddress, evmAddress.Hex()),
+		sdk.NewAttribute(types.AttributeKeyPubkey, msg.Pubkey),
+	))
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Signer),
+		),
+	)
+
+	return &types.MsgSetMappingEvmAddressResponse{}, nil
 }

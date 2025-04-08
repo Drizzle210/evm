@@ -19,20 +19,22 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Query_Account_FullMethodName           = "/cosmos.evm.vm.v1.Query/Account"
-	Query_CosmosAccount_FullMethodName     = "/cosmos.evm.vm.v1.Query/CosmosAccount"
-	Query_ValidatorAccount_FullMethodName  = "/cosmos.evm.vm.v1.Query/ValidatorAccount"
-	Query_Balance_FullMethodName           = "/cosmos.evm.vm.v1.Query/Balance"
-	Query_Storage_FullMethodName           = "/cosmos.evm.vm.v1.Query/Storage"
-	Query_Code_FullMethodName              = "/cosmos.evm.vm.v1.Query/Code"
-	Query_Params_FullMethodName            = "/cosmos.evm.vm.v1.Query/Params"
-	Query_EthCall_FullMethodName           = "/cosmos.evm.vm.v1.Query/EthCall"
-	Query_EstimateGas_FullMethodName       = "/cosmos.evm.vm.v1.Query/EstimateGas"
-	Query_TraceTx_FullMethodName           = "/cosmos.evm.vm.v1.Query/TraceTx"
-	Query_TraceBlock_FullMethodName        = "/cosmos.evm.vm.v1.Query/TraceBlock"
-	Query_BaseFee_FullMethodName           = "/cosmos.evm.vm.v1.Query/BaseFee"
-	Query_Config_FullMethodName            = "/cosmos.evm.vm.v1.Query/Config"
-	Query_GlobalMinGasPrice_FullMethodName = "/cosmos.evm.vm.v1.Query/GlobalMinGasPrice"
+	Query_Account_FullMethodName             = "/cosmos.evm.vm.v1.Query/Account"
+	Query_CosmosAccount_FullMethodName       = "/cosmos.evm.vm.v1.Query/CosmosAccount"
+	Query_ValidatorAccount_FullMethodName    = "/cosmos.evm.vm.v1.Query/ValidatorAccount"
+	Query_Balance_FullMethodName             = "/cosmos.evm.vm.v1.Query/Balance"
+	Query_Storage_FullMethodName             = "/cosmos.evm.vm.v1.Query/Storage"
+	Query_Code_FullMethodName                = "/cosmos.evm.vm.v1.Query/Code"
+	Query_Params_FullMethodName              = "/cosmos.evm.vm.v1.Query/Params"
+	Query_EthCall_FullMethodName             = "/cosmos.evm.vm.v1.Query/EthCall"
+	Query_EstimateGas_FullMethodName         = "/cosmos.evm.vm.v1.Query/EstimateGas"
+	Query_TraceTx_FullMethodName             = "/cosmos.evm.vm.v1.Query/TraceTx"
+	Query_TraceBlock_FullMethodName          = "/cosmos.evm.vm.v1.Query/TraceBlock"
+	Query_MappedEvmAddress_FullMethodName    = "/cosmos.evm.vm.v1.Query/MappedEvmAddress"
+	Query_MappedCosmosAddress_FullMethodName = "/cosmos.evm.vm.v1.Query/MappedCosmosAddress"
+	Query_BaseFee_FullMethodName             = "/cosmos.evm.vm.v1.Query/BaseFee"
+	Query_Config_FullMethodName              = "/cosmos.evm.vm.v1.Query/Config"
+	Query_GlobalMinGasPrice_FullMethodName   = "/cosmos.evm.vm.v1.Query/GlobalMinGasPrice"
 )
 
 // QueryClient is the client API for Query service.
@@ -64,6 +66,8 @@ type QueryClient interface {
 	// TraceBlock implements the `debug_traceBlockByNumber` and
 	// `debug_traceBlockByHash` rpc api
 	TraceBlock(ctx context.Context, in *QueryTraceBlockRequest, opts ...grpc.CallOption) (*QueryTraceBlockResponse, error)
+	MappedEvmAddress(ctx context.Context, in *QueryMappedEvmAddressRequest, opts ...grpc.CallOption) (*QueryMappedEvmAddressResponse, error)
+	MappedCosmosAddress(ctx context.Context, in *QueryMappedCosmosAddressRequest, opts ...grpc.CallOption) (*QueryMappedCosmosAddressResponse, error)
 	// BaseFee queries the base fee of the parent block of the current block,
 	// it's similar to feemarket module's method, but also checks london hardfork
 	// status.
@@ -184,6 +188,24 @@ func (c *queryClient) TraceBlock(ctx context.Context, in *QueryTraceBlockRequest
 	return out, nil
 }
 
+func (c *queryClient) MappedEvmAddress(ctx context.Context, in *QueryMappedEvmAddressRequest, opts ...grpc.CallOption) (*QueryMappedEvmAddressResponse, error) {
+	out := new(QueryMappedEvmAddressResponse)
+	err := c.cc.Invoke(ctx, Query_MappedEvmAddress_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) MappedCosmosAddress(ctx context.Context, in *QueryMappedCosmosAddressRequest, opts ...grpc.CallOption) (*QueryMappedCosmosAddressResponse, error) {
+	out := new(QueryMappedCosmosAddressResponse)
+	err := c.cc.Invoke(ctx, Query_MappedCosmosAddress_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *queryClient) BaseFee(ctx context.Context, in *QueryBaseFeeRequest, opts ...grpc.CallOption) (*QueryBaseFeeResponse, error) {
 	out := new(QueryBaseFeeResponse)
 	err := c.cc.Invoke(ctx, Query_BaseFee_FullMethodName, in, out, opts...)
@@ -240,6 +262,8 @@ type QueryServer interface {
 	// TraceBlock implements the `debug_traceBlockByNumber` and
 	// `debug_traceBlockByHash` rpc api
 	TraceBlock(context.Context, *QueryTraceBlockRequest) (*QueryTraceBlockResponse, error)
+	MappedEvmAddress(context.Context, *QueryMappedEvmAddressRequest) (*QueryMappedEvmAddressResponse, error)
+	MappedCosmosAddress(context.Context, *QueryMappedCosmosAddressRequest) (*QueryMappedCosmosAddressResponse, error)
 	// BaseFee queries the base fee of the parent block of the current block,
 	// it's similar to feemarket module's method, but also checks london hardfork
 	// status.
@@ -290,6 +314,12 @@ func (UnimplementedQueryServer) TraceTx(context.Context, *QueryTraceTxRequest) (
 }
 func (UnimplementedQueryServer) TraceBlock(context.Context, *QueryTraceBlockRequest) (*QueryTraceBlockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TraceBlock not implemented")
+}
+func (UnimplementedQueryServer) MappedEvmAddress(context.Context, *QueryMappedEvmAddressRequest) (*QueryMappedEvmAddressResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MappedEvmAddress not implemented")
+}
+func (UnimplementedQueryServer) MappedCosmosAddress(context.Context, *QueryMappedCosmosAddressRequest) (*QueryMappedCosmosAddressResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MappedCosmosAddress not implemented")
 }
 func (UnimplementedQueryServer) BaseFee(context.Context, *QueryBaseFeeRequest) (*QueryBaseFeeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BaseFee not implemented")
@@ -511,6 +541,42 @@ func _Query_TraceBlock_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_MappedEvmAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryMappedEvmAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).MappedEvmAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Query_MappedEvmAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).MappedEvmAddress(ctx, req.(*QueryMappedEvmAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_MappedCosmosAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryMappedCosmosAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).MappedCosmosAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Query_MappedCosmosAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).MappedCosmosAddress(ctx, req.(*QueryMappedCosmosAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Query_BaseFee_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(QueryBaseFeeRequest)
 	if err := dec(in); err != nil {
@@ -615,6 +681,14 @@ var Query_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TraceBlock",
 			Handler:    _Query_TraceBlock_Handler,
+		},
+		{
+			MethodName: "MappedEvmAddress",
+			Handler:    _Query_MappedEvmAddress_Handler,
+		},
+		{
+			MethodName: "MappedCosmosAddress",
+			Handler:    _Query_MappedCosmosAddress_Handler,
 		},
 		{
 			MethodName: "BaseFee",
