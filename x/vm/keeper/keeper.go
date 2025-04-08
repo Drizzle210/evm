@@ -333,7 +333,7 @@ func (k Keeper) GetEvmAddressMapping(ctx sdk.Context, addr sdk.AccAddress) (*com
 }
 
 // GetCosmosAddressMapping returns the account for a given address.
-func (k Keeper) GetCosmosAddressMapping(ctx sdk.Context, evmAddress common.Address) (*sdk.AccAddress, error) {
+func (k Keeper) getCosmosAddressMapping(ctx sdk.Context, evmAddress common.Address) (*sdk.AccAddress, error) {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, _ := store.Get(types.CosmosAddressMappingStoreKey(evmAddress))
 	if bz == nil {
@@ -341,6 +341,15 @@ func (k Keeper) GetCosmosAddressMapping(ctx sdk.Context, evmAddress common.Addre
 	}
 	cosmosAddress := sdk.AccAddress(bz)
 	return &cosmosAddress, nil
+}
+
+func (k Keeper) GetCosmosAddressMapping(ctx sdk.Context, evmAddress common.Address) sdk.AccAddress {
+	cosmosAddress := sdk.AccAddress(evmAddress.Bytes())
+	cosmosAddr, err := k.getCosmosAddressMapping(ctx, evmAddress)
+	if err == nil {
+		cosmosAddress = *cosmosAddr
+	}
+	return cosmosAddress
 }
 
 // SetAddressMapping sets the a mapping of an evm address for a given cosmos address.
