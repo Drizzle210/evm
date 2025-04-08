@@ -3,7 +3,6 @@ package types
 import (
 	"errors"
 	"fmt"
-	"github.com/cosmos/evm/api/cosmos/evm/vm/v1"
 	"math/big"
 
 	errorsmod "cosmossdk.io/errors"
@@ -18,7 +17,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
-	evmapi "github.com/cosmos/evm/api/cosmos/evm/vm/v1"
+	vmv1 "github.com/cosmos/evm/api/cosmos/evm/vm/v1"
 	"github.com/cosmos/evm/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -28,6 +27,8 @@ import (
 
 var (
 	_ sdk.Msg    = &MsgEthereumTx{}
+	_ sdk.Msg    = &MsgSetMappingEvmAddress{}
+	_ sdk.Msg    = &MsgDeleteMappingEvmAddress{}
 	_ sdk.Tx     = &MsgEthereumTx{}
 	_ ante.GasTx = &MsgEthereumTx{}
 	_ sdk.Msg    = &MsgUpdateParams{}
@@ -38,11 +39,13 @@ var (
 // message type and route constants
 const (
 	// TypeMsgEthereumTx defines the type string of an Ethereum transaction
-	TypeMsgEthereumTx = "ethereum_tx"
+	TypeMsgEthereumTx              = "ethereum_tx"
+	TypeMsgSetMappingEvmAddress    = "evmutil_set_mapping_evm_address"
+	TypeMsgDeleteMappingEvmAddress = "evmutil_delete_mapping_evm_address"
 )
 
 var MsgEthereumTxCustomGetSigner = txsigning.CustomGetSigner{
-	MsgType: protov2.MessageName(&evmapi.MsgEthereumTx{}),
+	MsgType: protov2.MessageName(&vmv1.MsgEthereumTx{}),
 	Fn:      vmv1.GetSigners,
 }
 
@@ -371,4 +374,100 @@ func (m *MsgUpdateParams) ValidateBasic() error {
 // GetSignBytes implements the LegacyMsg interface.
 func (m MsgUpdateParams) GetSignBytes() []byte {
 	return sdk.MustSortJSON(AminoCdc.MustMarshalJSON(&m))
+}
+
+// NewMsgSetMappingEvmAddress returns a new MsgSetMappingEvmAddress
+func NewMsgSetMappingEvmAddress(
+	signer, pubkey string,
+) MsgSetMappingEvmAddress {
+	return MsgSetMappingEvmAddress{
+		Signer: signer,
+		Pubkey: pubkey,
+	}
+}
+
+// GetSigners returns the addresses of signers that must sign.
+func (msg MsgSetMappingEvmAddress) GetSigners() []sdk.AccAddress {
+	signer, err := sdk.AccAddressFromBech32(msg.Signer)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{signer}
+}
+
+// ValidateBasic does a simple validation check that doesn't require access to any other information.
+func (msg MsgSetMappingEvmAddress) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
+	if err != nil {
+		return errorsmod.Wrap(errortypes.ErrInvalidAddress, "signer is not a valid bech32 address")
+	}
+
+	cosmosAddress, err := PubkeyToAddress(msg.Pubkey)
+	if err != nil {
+		return err
+	}
+	if msg.Signer != cosmosAddress.String() {
+		return errorsmod.Wrap(
+			errortypes.ErrInvalidAddress,
+			"Signer does not match the given pubkey",
+		)
+	}
+	return nil
+}
+
+// GetSignBytes implements the LegacyMsg.GetSignBytes method.
+func (msg MsgSetMappingEvmAddress) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+}
+
+// Route implements the LegacyMsg.Route method.
+func (msg MsgSetMappingEvmAddress) Route() string {
+	return RouterKey
+}
+
+// Type implements the LegacyMsg.Type method.
+func (msg MsgSetMappingEvmAddress) Type() string {
+	return TypeMsgSetMappingEvmAddress
+}
+
+// NewMsgDeleteMappingEvmAddress returns a new MsgDeleteMappingEvmAddress
+func NewMsgDeleteMappingEvmAddress(
+	signer string,
+) MsgDeleteMappingEvmAddress {
+	return MsgDeleteMappingEvmAddress{
+		Signer: signer,
+	}
+}
+
+// GetSigners returns the addresses of signers that must sign.
+func (msg MsgDeleteMappingEvmAddress) GetSigners() []sdk.AccAddress {
+	signer, err := sdk.AccAddressFromBech32(msg.Signer)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{signer}
+}
+
+// ValidateBasic does a simple validation check that doesn't require access to any other information.
+func (msg MsgDeleteMappingEvmAddress) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
+	if err != nil {
+		return errorsmod.Wrap(errortypes.ErrInvalidAddress, "signer is not a valid bech32 address")
+	}
+	return nil
+}
+
+// GetSignBytes implements the LegacyMsg.GetSignBytes method.
+func (msg MsgDeleteMappingEvmAddress) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+}
+
+// Route implements the LegacyMsg.Route method.
+func (msg MsgDeleteMappingEvmAddress) Route() string {
+	return RouterKey
+}
+
+// Type implements the LegacyMsg.Type method.
+func (msg MsgDeleteMappingEvmAddress) Type() string {
+	return TypeMsgDeleteMappingEvmAddress
 }
