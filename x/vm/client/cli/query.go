@@ -1,8 +1,12 @@
 package cli
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/version"
 	rpctypes "github.com/cosmos/evm/rpc/types"
 	"github.com/cosmos/evm/x/vm/types"
 	"github.com/spf13/cobra"
@@ -166,6 +170,37 @@ func GetParamsCmd() *cobra.Command {
 		},
 	}
 
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+// QueryMappedEvmAddressCmd queries the evmutil mapped evm address given a cosmos address
+func QueryMappedEvmAddressCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "mappedevm",
+		Short: "Query the evm mapped evm address given a cosmos address",
+		Example: fmt.Sprintf(
+			"%[1]s q %[2]s mappedevm orai1knzg7jdc49ghnc2pkqg6vks8ccsk6efzfgv6gv",
+			version.AppName, types.ModuleName,
+		),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			cosmosAddress := args[0]
+
+			queryClient := types.NewQueryClient(clientCtx)
+			res, err := queryClient.MappedEvmAddress(context.Background(), &types.QueryMappedEvmAddressRequest{CosmosAddress: cosmosAddress})
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
 	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
 }

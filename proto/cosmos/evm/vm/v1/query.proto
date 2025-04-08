@@ -75,6 +75,10 @@ service Query {
     option (google.api.http).get = "/cosmos/evm/vm/v1/trace_block";
   }
 
+  rpc MappedEvmAddress(QueryMappedEvmAddressRequest) returns (QueryMappedEvmAddressResponse) {
+    option (google.api.http).get = "/ethermint/evm/v1/mapped-evm-address";
+  }
+
   // BaseFee queries the base fee of the parent block of the current block,
   // it's similar to feemarket module's method, but also checks london hardfork
   // status.
@@ -362,4 +366,14 @@ message QueryGlobalMinGasPriceResponse {
     (gogoproto.customtype) = "cosmossdk.io/math.Int",
     (gogoproto.nullable) = false
   ];
+}
+
+// QueryParamsRequest defines the request type for querying x/evmutil parameters.
+message QueryMappedEvmAddressRequest {
+  string cosmos_address = 1;
+}
+
+// QueryParamsResponse defines the response type for querying x/evmutil parameters.
+message QueryMappedEvmAddressResponse {
+  string evm_address = 1;
 }
