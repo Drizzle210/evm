@@ -42,6 +42,8 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		(*sdk.Msg)(nil),
 		&MsgEthereumTx{},
 		&MsgUpdateParams{},
+		&MsgSetMappingEvmAddress{},
+		&MsgDeleteMappingEvmAddress{},
 	)
 	registry.RegisterInterface(
 		"os.vm.v1.TxData",

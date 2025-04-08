@@ -28,6 +28,7 @@ func GetQueryCmd() *cobra.Command {
 		GetAccountCmd(),
 		GetParamsCmd(),
 		GetConfigCmd(),
+		QueryMappedEvmAddressCmd(),
 	)
 	return cmd
 }
