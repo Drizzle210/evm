@@ -177,5 +177,25 @@ func (k *Keeper) SetMappingEvmAddress(goCtx context.Context, msg *types.MsgSetMa
 }
 
 func (k *Keeper) DeleteMappingEvmAddress(goCtx context.Context, msg *types.MsgDeleteMappingEvmAddress) (*types.MsgDeleteMappingEvmAddressResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	signer, err := sdk.AccAddressFromBech32(msg.Signer)
+	if err != nil {
+		return nil, fmt.Errorf("invalid signer address: %w", err)
+	}
+	k.DeleteAddressMapping(ctx, signer)
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeDeleteMappingEvmAddress,
+		sdk.NewAttribute(types.AttributeKeyCosmosAddress, msg.Signer),
+	))
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Signer),
+		),
+	)
+
 	return &types.MsgDeleteMappingEvmAddressResponse{}, nil
 }
