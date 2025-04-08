@@ -722,3 +722,23 @@ func (k Keeper) Config(_ context.Context, _ *types.QueryConfigRequest) (*types.Q
 
 	return &types.QueryConfigResponse{Config: config}, nil
 }
+
+// MappedEvmAddress queries mapped evm address given a cosmos address
+func (k Keeper) MappedEvmAddress(stdCtx context.Context, req *types.QueryMappedEvmAddressRequest) (*types.QueryMappedEvmAddressResponse, error) {
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "empty request")
+	}
+
+	ctx := sdk.UnwrapSDKContext(stdCtx)
+	cosmosAddress, err := sdk.AccAddressFromBech32(req.CosmosAddress)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintln("invalid cosmos address: ", err))
+	}
+
+	evmAddress, err := k.GetEvmAddressMapping(ctx, cosmosAddress)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, err.Error())
+	}
+
+	return &types.QueryMappedEvmAddressResponse{EvmAddress: evmAddress.Hex()}, nil
+}

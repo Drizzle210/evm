@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"cosmossdk.io/store/prefix"
+	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/evm/x/vm/types"
 	"github.com/ethereum/go-ethereum/common"
@@ -9,6 +10,8 @@ import (
 
 // IsContract determines if the given address is a smart contract.
 func (k *Keeper) IsContract(ctx sdk.Context, addr common.Address) bool {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixCodeHash)
-	return store.Has(addr.Bytes())
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.KeyPrefixCodeHash)
+
+	return prefixStore.Has(addr.Bytes())
 }

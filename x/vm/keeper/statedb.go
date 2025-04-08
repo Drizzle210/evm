@@ -6,6 +6,7 @@ import (
 
 	"cosmossdk.io/store/prefix"
 	storetypes "cosmossdk.io/store/types"
+	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/evm/x/vm/statedb"
 	"github.com/cosmos/evm/x/vm/types"
@@ -31,9 +32,10 @@ func (k *Keeper) GetAccount(ctx sdk.Context, addr common.Address) *statedb.Accou
 
 // GetState loads contract state from database.
 func (k *Keeper) GetState(ctx sdk.Context, addr common.Address, key common.Hash) common.Hash {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.AddressStoragePrefix(addr))
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.AddressStoragePrefix(addr))
 
-	value := store.Get(key.Bytes())
+	value := prefixStore.Get(key.Bytes())
 	if len(value) == 0 {
 		return common.Hash{}
 	}
@@ -43,15 +45,18 @@ func (k *Keeper) GetState(ctx sdk.Context, addr common.Address, key common.Hash)
 
 // GetFastState loads contract state from database.
 func (k *Keeper) GetFastState(ctx sdk.Context, addr common.Address, key common.Hash) []byte {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.AddressStoragePrefix(addr))
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.AddressStoragePrefix(addr))
 
-	return store.Get(key.Bytes())
+	return prefixStore.Get(key.Bytes())
 }
 
 // GetCodeHash loads the code hash from the database for the given contract address.
 func (k *Keeper) GetCodeHash(ctx sdk.Context, addr common.Address) common.Hash {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixCodeHash)
-	bz := store.Get(addr.Bytes())
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.KeyPrefixCodeHash)
+
+	bz := prefixStore.Get(addr.Bytes())
 	if len(bz) == 0 {
 		return common.BytesToHash(types.EmptyCodeHash)
 	}
@@ -64,7 +69,7 @@ func (k *Keeper) GetCodeHash(ctx sdk.Context, addr common.Address) common.Hash {
 //
 // The iteration is stopped when the callback function returns true.
 func (k Keeper) IterateContracts(ctx sdk.Context, cb func(addr common.Address, codeHash common.Hash) (stop bool)) {
-	store := ctx.KVStore(k.storeKey)
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
 	iterator := storetypes.KVStorePrefixIterator(store, types.KeyPrefixCodeHash)
 
 	defer iterator.Close()
@@ -80,13 +85,14 @@ func (k Keeper) IterateContracts(ctx sdk.Context, cb func(addr common.Address, c
 
 // GetCode loads contract code from database, implements `statedb.Keeper` interface.
 func (k *Keeper) GetCode(ctx sdk.Context, codeHash common.Hash) []byte {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixCode)
-	return store.Get(codeHash.Bytes())
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.KeyPrefixCode)
+	return prefixStore.Get(codeHash.Bytes())
 }
 
 // ForEachStorage iterate contract storage, callback return false to break early
 func (k *Keeper) ForEachStorage(ctx sdk.Context, addr common.Address, cb func(key, value common.Hash) bool) {
-	store := ctx.KVStore(k.storeKey)
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
 	prefix := types.AddressStoragePrefix(addr)
 
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
@@ -162,8 +168,9 @@ func (k *Keeper) SetAccount(ctx sdk.Context, addr common.Address, account stated
 
 // SetState update contract storage.
 func (k *Keeper) SetState(ctx sdk.Context, addr common.Address, key common.Hash, value []byte) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.AddressStoragePrefix(addr))
-	store.Set(key.Bytes(), value)
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.AddressStoragePrefix(addr))
+	prefixStore.Set(key.Bytes(), value)
 
 	k.Logger(ctx).Debug(
 		"state updated",
@@ -175,8 +182,9 @@ func (k *Keeper) SetState(ctx sdk.Context, addr common.Address, key common.Hash,
 // DeleteState deletes the entry for the given key in the contract storage
 // at the defined contract address.
 func (k *Keeper) DeleteState(ctx sdk.Context, addr common.Address, key common.Hash) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.AddressStoragePrefix(addr))
-	store.Delete(key.Bytes())
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.AddressStoragePrefix(addr))
+	prefixStore.Delete(key.Bytes())
 
 	k.Logger(ctx).Debug(
 		"state deleted",
@@ -187,8 +195,10 @@ func (k *Keeper) DeleteState(ctx sdk.Context, addr common.Address, key common.Ha
 
 // SetCodeHash sets the code hash for the given contract address.
 func (k *Keeper) SetCodeHash(ctx sdk.Context, addrBytes, hashBytes []byte) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixCodeHash)
-	store.Set(addrBytes, hashBytes)
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.KeyPrefixCodeHash)
+
+	prefixStore.Set(addrBytes, hashBytes)
 
 	k.Logger(ctx).Debug(
 		"code hash updated",
@@ -199,8 +209,10 @@ func (k *Keeper) SetCodeHash(ctx sdk.Context, addrBytes, hashBytes []byte) {
 
 // DeleteCodeHash deletes the code hash for the given contract address from the store.
 func (k *Keeper) DeleteCodeHash(ctx sdk.Context, addr common.Address) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixCodeHash)
-	store.Delete(addr.Bytes())
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.KeyPrefixCodeHash)
+
+	prefixStore.Delete(addr.Bytes())
 
 	k.Logger(ctx).Debug(
 		"code hash deleted",
@@ -211,8 +223,9 @@ func (k *Keeper) DeleteCodeHash(ctx sdk.Context, addr common.Address) {
 // SetCode sets the given contract code bytes for the corresponding code hash bytes key
 // in the code store.
 func (k *Keeper) SetCode(ctx sdk.Context, codeHash, code []byte) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixCode)
-	store.Set(codeHash, code)
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.KeyPrefixCode)
+	prefixStore.Set(codeHash, code)
 
 	k.Logger(ctx).Debug(
 		"code updated",
@@ -223,8 +236,9 @@ func (k *Keeper) SetCode(ctx sdk.Context, codeHash, code []byte) {
 // DeleteCode deletes the contract code for the given code hash bytes in
 // the corresponding store.
 func (k *Keeper) DeleteCode(ctx sdk.Context, codeHash []byte) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixCode)
-	store.Delete(codeHash)
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	prefixStore := prefix.NewStore(store, types.KeyPrefixCode)
+	prefixStore.Delete(codeHash)
 
 	k.Logger(ctx).Debug(
 		"code deleted",
