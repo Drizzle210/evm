@@ -26,9 +26,9 @@ import (
 )
 
 var (
-	_ sdk.Msg    = &MsgEthereumTx{}
-	_ sdk.Msg    = &MsgSetMappingEvmAddress{}
-	_ sdk.Msg    = &MsgDeleteMappingEvmAddress{}
+	_ sdk.Msg = &MsgEthereumTx{}
+	_ sdk.Msg = &MsgSetMappingEvmAddress{}
+	// _ sdk.Msg    = &MsgDeleteMappingEvmAddress{}
 	_ sdk.Tx     = &MsgEthereumTx{}
 	_ ante.GasTx = &MsgEthereumTx{}
 	_ sdk.Msg    = &MsgUpdateParams{}
