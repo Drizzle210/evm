@@ -14,12 +14,12 @@ import (
 	"github.com/cosmos/evm/testutil/integration/os/factory"
 	testkeyring "github.com/cosmos/evm/testutil/integration/os/keyring"
 	"github.com/cosmos/evm/testutil/integration/os/network"
+	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
 	ethlogger "github.com/cosmos/evm/x/vm/core/logger"
 	"github.com/cosmos/evm/x/vm/core/vm"
 	"github.com/cosmos/evm/x/vm/keeper/testdata"
 	"github.com/cosmos/evm/x/vm/statedb"
 	"github.com/cosmos/evm/x/vm/types"
-	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -63,10 +63,12 @@ func (suite *KeeperTestSuite) TestQueryAccount() {
 				)
 				suite.Require().NoError(err)
 
+				cosmosAddress := suite.network.App.EVMKeeper.GetCosmosAddressMapping(suite.network.GetContext(), addr)
+
 				err = suite.network.App.BankKeeper.SendCoinsFromModuleToAccount(
 					suite.network.GetContext(),
 					types.ModuleName,
-					addr.Bytes(),
+					cosmosAddress,
 					amt,
 				)
 				suite.Require().NoError(err)

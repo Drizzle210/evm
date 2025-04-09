@@ -26,9 +26,9 @@ import (
 )
 
 var (
-	_ sdk.Msg    = &MsgEthereumTx{}
-	_ sdk.Msg    = &MsgSetMappingEvmAddress{}
-	_ sdk.Msg    = &MsgDeleteMappingEvmAddress{}
+	_ sdk.Msg = &MsgEthereumTx{}
+	_ sdk.Msg = &MsgSetMappingEvmAddress{}
+	// _ sdk.Msg    = &MsgDeleteMappingEvmAddress{}
 	_ sdk.Tx     = &MsgEthereumTx{}
 	_ ante.GasTx = &MsgEthereumTx{}
 	_ sdk.Msg    = &MsgUpdateParams{}
@@ -402,7 +402,7 @@ func (msg MsgSetMappingEvmAddress) ValidateBasic() error {
 		return errorsmod.Wrap(errortypes.ErrInvalidAddress, "signer is not a valid bech32 address")
 	}
 
-	cosmosAddress, err := PubkeyToAddress(msg.Pubkey)
+	cosmosAddress, err := PubkeyToCosmosAddress(msg.Pubkey)
 	if err != nil {
 		return err
 	}

@@ -365,10 +365,11 @@ func (suite *BackendTestSuite) TestGetTransactionCount() {
 			"pass - account doesn't exist",
 			false,
 			rpctypes.NewBlockNumber(big.NewInt(1)),
-			func(common.Address, rpctypes.BlockNumber) {
+			func(address common.Address, _ rpctypes.BlockNumber) {
 				var header metadata.MD
 				queryClient := suite.backend.queryClient.QueryClient.(*mocks.EVMQueryClient)
 				RegisterParams(queryClient, &header, 1)
+				RegisterQueryMappedCosmosAddress(queryClient, address.Hex())
 			},
 			true,
 			hexutil.Uint64(0),
@@ -377,7 +378,7 @@ func (suite *BackendTestSuite) TestGetTransactionCount() {
 			"fail - block height is in the future",
 			false,
 			rpctypes.NewBlockNumber(big.NewInt(10000)),
-			func(common.Address, rpctypes.BlockNumber) {
+			func(address common.Address, _ rpctypes.BlockNumber) {
 				var header metadata.MD
 				queryClient := suite.backend.queryClient.QueryClient.(*mocks.EVMQueryClient)
 				RegisterParams(queryClient, &header, 1)

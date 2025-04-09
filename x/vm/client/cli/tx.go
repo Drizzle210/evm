@@ -29,6 +29,7 @@ func NewTxCmd() *cobra.Command {
 
 	txCmd.AddCommand(
 		NewRawTxCmd(),
+		GetCmdSetMappingEvmAddress(),
 	)
 	return txCmd
 }

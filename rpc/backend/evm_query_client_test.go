@@ -115,6 +115,14 @@ func RegisterParamsError(queryClient *mocks.EVMQueryClient, header *metadata.MD,
 		Return(nil, errortypes.ErrInvalidRequest)
 }
 
+// QueryMappedCosmosAddress
+func RegisterQueryMappedCosmosAddress(queryClient *mocks.EVMQueryClient, evmAddress string) {
+	cosmosAddress := sdk.AccAddress(common.HexToAddress(evmAddress).Bytes())
+	queryClient.On("MappedCosmosAddress", rpc.ContextWithHeight(1), &evmtypes.QueryMappedCosmosAddressRequest{EvmAddress: evmAddress}).
+		Return(&evmtypes.QueryMappedCosmosAddressResponse{CosmosAddress: cosmosAddress.String()}, nil)
+
+}
+
 func TestRegisterParams(t *testing.T) {
 	var header metadata.MD
 	queryClient := mocks.NewEVMQueryClient(t)

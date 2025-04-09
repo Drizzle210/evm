@@ -216,7 +216,8 @@ func (md MonoDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 		decUtils.TxGasLimit += gas
 
 		// 9. increment sequence
-		acc := md.accountKeeper.GetAccount(ctx, from)
+		cosmosAddress := md.evmKeeper.GetCosmosAddressMapping(ctx, fromAddr)
+		acc := md.accountKeeper.GetAccount(ctx, cosmosAddress)
 		if acc == nil {
 			// safety check: shouldn't happen
 			return ctx, errorsmod.Wrapf(

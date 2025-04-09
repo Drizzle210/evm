@@ -215,7 +215,7 @@ func (k Keeper) Tracer(ctx sdk.Context, msg core.Message, ethCfg *params.ChainCo
 // GetAccountWithoutBalance load nonce and codehash without balance,
 // more efficient in cases where balance is not needed.
 func (k *Keeper) GetAccountWithoutBalance(ctx sdk.Context, addr common.Address) *statedb.Account {
-	cosmosAddr := sdk.AccAddress(addr.Bytes())
+	cosmosAddr := k.GetCosmosAddressMapping(ctx, addr)
 	acct := k.accountKeeper.GetAccount(ctx, cosmosAddr)
 	if acct == nil {
 		return nil
@@ -245,7 +245,7 @@ func (k *Keeper) GetAccountOrEmpty(ctx sdk.Context, addr common.Address) statedb
 
 // GetNonce returns the sequence number of an account, returns 0 if not exists.
 func (k *Keeper) GetNonce(ctx sdk.Context, addr common.Address) uint64 {
-	cosmosAddr := sdk.AccAddress(addr.Bytes())
+	cosmosAddr := k.GetCosmosAddressMapping(ctx, addr)
 	acct := k.accountKeeper.GetAccount(ctx, cosmosAddr)
 	if acct == nil {
 		return 0
@@ -256,7 +256,7 @@ func (k *Keeper) GetNonce(ctx sdk.Context, addr common.Address) uint64 {
 
 // GetBalance load account's balance of gas token.
 func (k *Keeper) GetBalance(ctx sdk.Context, addr common.Address) *big.Int {
-	cosmosAddr := sdk.AccAddress(addr.Bytes())
+	cosmosAddr := k.GetCosmosAddressMapping(ctx, addr)
 
 	// Get the balance via bank wrapper to convert it to 18 decimals if needed.
 	coin := k.bankWrapper.GetBalance(ctx, cosmosAddr, types.GetEVMCoinDenom())
@@ -333,7 +333,7 @@ func (k Keeper) GetEvmAddressMapping(ctx sdk.Context, addr sdk.AccAddress) (*com
 }
 
 // GetCosmosAddressMapping returns the account for a given address.
-func (k Keeper) GetCosmosAddressMapping(ctx sdk.Context, evmAddress common.Address) (*sdk.AccAddress, error) {
+func (k Keeper) getCosmosAddressMapping(ctx sdk.Context, evmAddress common.Address) (*sdk.AccAddress, error) {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, _ := store.Get(types.CosmosAddressMappingStoreKey(evmAddress))
 	if bz == nil {
@@ -343,6 +343,15 @@ func (k Keeper) GetCosmosAddressMapping(ctx sdk.Context, evmAddress common.Addre
 	return &cosmosAddress, nil
 }
 
+func (k Keeper) GetCosmosAddressMapping(ctx sdk.Context, evmAddress common.Address) sdk.AccAddress {
+	cosmosAddress := sdk.AccAddress(evmAddress.Bytes())
+	cosmosAddr, err := k.getCosmosAddressMapping(ctx, evmAddress)
+	if err == nil {
+		cosmosAddress = *cosmosAddr
+	}
+	return cosmosAddress
+}
+
 // SetAddressMapping sets the a mapping of an evm address for a given cosmos address.
 func (k Keeper) SetAddressMapping(ctx sdk.Context, cosmosAddress sdk.AccAddress, evmAddress common.Address) {
 	store := k.storeService.OpenKVStore(ctx)
@@ -350,18 +359,4 @@ func (k Keeper) SetAddressMapping(ctx sdk.Context, cosmosAddress sdk.AccAddress,
 	cosmosMappingKey := types.CosmosAddressMappingStoreKey(evmAddress)
 	store.Set(evmMappingKey, evmAddress.Bytes())
 	store.Set(cosmosMappingKey, cosmosAddress.Bytes())
-}
-
-// DeleteAddressMapping sets the a mapping of an evm address for a given cosmos address.
-func (k Keeper) DeleteAddressMapping(ctx sdk.Context, cosmosAddress sdk.AccAddress) error {
-	store := k.storeService.OpenKVStore(ctx)
-	evmAddress, err := k.GetEvmAddressMapping(ctx, cosmosAddress)
-	if err != nil {
-		return err
-	}
-	evmMappingKey := types.EvmAddressMappingStoreKey(cosmosAddress)
-	cosmosMappingKey := types.CosmosAddressMappingStoreKey(*evmAddress)
-	store.Delete(evmMappingKey)
-	store.Delete(cosmosMappingKey)
-	return nil
 }
