@@ -360,3 +360,38 @@ func (k Keeper) SetAddressMapping(ctx sdk.Context, cosmosAddress sdk.AccAddress,
 	store.Set(evmMappingKey, evmAddress.Bytes())
 	store.Set(cosmosMappingKey, cosmosAddress.Bytes())
 }
+
+// migrate balance from address before mapping to after mapping
+func (k Keeper) MigrateNonce(ctx sdk.Context, evmAddress common.Address, mappedCosmosAddress sdk.AccAddress) error {
+	castAddress := sdk.AccAddress(evmAddress[:])
+	castAcc := k.accountKeeper.GetAccount(ctx, castAddress)
+	if castAcc == nil {
+		return nil
+	}
+	castNonce := castAcc.GetSequence()
+	mappedAcc := k.accountKeeper.GetAccount(ctx, mappedCosmosAddress)
+	if mappedAcc == nil {
+		return nil
+	}
+	mappedNonce := mappedAcc.GetSequence()
+
+	if castNonce > mappedNonce {
+		err := mappedAcc.SetSequence(castNonce)
+		if err != nil {
+			return err
+		}
+		k.accountKeeper.SetAccount(ctx, mappedAcc)
+	}
+	return nil
+}
+
+func (k Keeper) MigrateBalance(ctx sdk.Context, evmAddress common.Address, mappedCosmosAddress sdk.AccAddress) error {
+	castAddress := sdk.AccAddress(evmAddress[:])
+	castAddrBalances := k.bankWrapper.SpendableCoins(ctx, castAddress)
+	if !castAddrBalances.IsZero() {
+		if err := k.bankWrapper.SendCoins(ctx, castAddress, mappedCosmosAddress, castAddrBalances); err != nil {
+			return err
+		}
+	}
+	return nil
+}
