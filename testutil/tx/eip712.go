@@ -45,7 +45,11 @@ func CreateEIP712CosmosTx(
 	exampleApp *exampleapp.ExampleChain,
 	args EIP712TxArgs,
 ) (sdk.Tx, error) {
+	priv := args.CosmosTxArgs.Priv
+
+	from := sdk.AccAddress(priv.PubKey().Address().Bytes())
 	builder, err := PrepareEIP712CosmosTx(
+		from,
 		ctx,
 		exampleApp,
 		args,
@@ -57,6 +61,7 @@ func CreateEIP712CosmosTx(
 // Also, signs the tx with the provided messages and private key.
 // It returns the tx builder with the signed transaction and an error
 func PrepareEIP712CosmosTx(
+	from sdk.AccAddress,
 	ctx sdk.Context,
 	exampleApp *exampleapp.ExampleChain,
 	args EIP712TxArgs,
@@ -69,7 +74,6 @@ func PrepareEIP712CosmosTx(
 	}
 	chainIDNum := pc.Uint64()
 
-	from := sdk.AccAddress(txArgs.Priv.PubKey().Address().Bytes())
 	accNumber := exampleApp.AccountKeeper.GetAccount(ctx, from).GetAccountNumber()
 
 	nonce, err := exampleApp.AccountKeeper.GetSequence(ctx, from)
@@ -109,6 +113,7 @@ func PrepareEIP712CosmosTx(
 	}
 
 	return signCosmosEIP712Tx(
+		from,
 		ctx,
 		exampleApp,
 		args,
@@ -120,6 +125,7 @@ func PrepareEIP712CosmosTx(
 // signCosmosEIP712Tx signs the cosmos transaction on the txBuilder provided using
 // the provided private key and the typed data
 func signCosmosEIP712Tx(
+	from sdk.AccAddress,
 	ctx sdk.Context,
 	exampleApp *exampleapp.ExampleChain,
 	args EIP712TxArgs,
@@ -128,7 +134,6 @@ func signCosmosEIP712Tx(
 ) (client.TxBuilder, error) {
 	priv := args.CosmosTxArgs.Priv
 
-	from := sdk.AccAddress(priv.PubKey().Address().Bytes())
 	nonce, err := exampleApp.AccountKeeper.GetSequence(ctx, from)
 	if err != nil {
 		return nil, err
