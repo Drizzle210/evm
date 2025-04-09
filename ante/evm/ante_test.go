@@ -25,9 +25,10 @@ import (
 
 func (suite *AnteTestSuite) TestAnteHandler() {
 	var (
-		ctx     sdk.Context
-		addr    common.Address
-		privKey cryptotypes.PrivKey
+		ctx           sdk.Context
+		addr          common.Address
+		privKey       cryptotypes.PrivKey
+		cosmosAddress sdk.AccAddress
 	)
 	to := utiltx.GenerateAddress()
 
@@ -43,7 +44,7 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		ctx = suite.GetNetwork().GetContext()
 
 		pubKey := base64.StdEncoding.EncodeToString(privKey.PubKey().Bytes())
-		cosmosAddress, _ := evmtypes.PubkeyBytesToCosmosAddress(privKey.PubKey().Bytes())
+		cosmosAddress, _ = evmtypes.PubkeyBytesToCosmosAddress(privKey.PubKey().Bytes())
 		msg := evmtypes.NewMsgSetMappingEvmAddress(cosmosAddress.String(), pubKey)
 		suite.GetNetwork().App.EVMKeeper.SetMappingEvmAddress(ctx, &msg)
 

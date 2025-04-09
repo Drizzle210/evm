@@ -12,8 +12,8 @@ import (
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 	"github.com/cosmos/evm/x/vm/wrappers"
 	"github.com/cosmos/evm/x/vm/wrappers/testutil"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 // --------------------------------------TRANSACTIONS-----------------------------------------------
