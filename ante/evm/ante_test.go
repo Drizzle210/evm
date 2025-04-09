@@ -1,7 +1,6 @@
 package evm_test
 
 import (
-	"encoding/base64"
 	"errors"
 	"math/big"
 	"strings"
@@ -42,12 +41,13 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		privKey = fromKey.Priv
 		ctx = suite.GetNetwork().GetContext()
 
-		pubKey := base64.StdEncoding.EncodeToString(privKey.PubKey().Bytes())
-		cosmosAddress, _ := evmtypes.PubkeyBytesToCosmosAddress(privKey.PubKey().Bytes())
-		msg := evmtypes.NewMsgSetMappingEvmAddress(cosmosAddress.String(), pubKey)
-		suite.GetNetwork().App.EVMKeeper.SetMappingEvmAddress(ctx, &msg)
+		// pubKey := base64.StdEncoding.EncodeToString(privKey.PubKey().Bytes())
+		// cosmosAddress, _ := evmtypes.PubkeyBytesToCosmosAddress(privKey.PubKey().Bytes())
+		// msg := evmtypes.NewMsgSetMappingEvmAddress(cosmosAddress.String(), pubKey)
+		// suite.GetNetwork().App.EVMKeeper.SetMappingEvmAddress(ctx, &msg)
 
-		acc := suite.GetNetwork().App.AccountKeeper.NewAccountWithAddress(ctx, cosmosAddress)
+		// acc := suite.GetNetwork().App.AccountKeeper.NewAccountWithAddress(ctx, cosmosAddress)
+		acc := suite.GetNetwork().App.AccountKeeper.NewAccountWithAddress(ctx, addr.Bytes())
 		suite.GetNetwork().App.AccountKeeper.SetAccount(ctx, acc)
 
 		suite.GetNetwork().App.EVMKeeper.SetBalance(ctx, addr, big.NewInt(10000000000))
