@@ -27,9 +27,6 @@ service Msg {
 
   // SetMappingEvmAddress defines a method for mapping an evm address to a cosmos address
   rpc SetMappingEvmAddress(MsgSetMappingEvmAddress) returns (MsgSetMappingEvmAddressResponse);
- 
-  // DeleteMappingEvmAddress defines a method for deleting the cosmos address for a given evm address
-  rpc DeleteMappingEvmAddress(MsgDeleteMappingEvmAddress) returns (MsgDeleteMappingEvmAddressResponse);
 }
 
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
