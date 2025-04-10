@@ -1,11 +1,13 @@
 package cosmos
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	errorsmod "cosmossdk.io/errors"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	cosmossecp256k1 "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
@@ -17,12 +19,22 @@ import (
 	"github.com/cosmos/evm/crypto/ethsecp256k1"
 	"github.com/cosmos/evm/ethereum/eip712"
 	"github.com/cosmos/evm/types"
+	evmtypes "github.com/cosmos/evm/x/vm/types"
+	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 )
 
 var evmCodec codec.ProtoCodecMarshaler
+
+var (
+	// simulation signature values used to estimate gas consumption
+	key                = make([]byte, cosmossecp256k1.PubKeySize)
+	simSecp256k1Pubkey = &cosmossecp256k1.PubKey{Key: key}
+
+	// _ authsigning.SigVerifiableTx = (*legacytx.StdTx)(nil) // assert StdTx implements SigVerifiableTx
+)
 
 func init() {
 	registry := codectypes.NewInterfaceRegistry()
@@ -143,6 +155,96 @@ func (svd LegacyEip712SigVerificationDecorator) AnteHandle(ctx sdk.Context,
 		errMsg := fmt.Errorf("signature verification failed; please verify account number (%d) and chain-id (%s): %w", accNum, chainID, err)
 		return ctx, errorsmod.Wrap(errortypes.ErrUnauthorized, errMsg.Error())
 	}
+
+	return next(ctx, tx, simulate)
+}
+
+// SetPubKeyDecorator sets PubKeys in context for any signer which does not already have pubkey set
+// PubKeys must be set in context for all signers before any other sigverify decorators run
+// CONTRACT: Tx must implement SigVerifiableTx interface
+type SetPubKeyDecorator struct {
+	ak        evmtypes.AccountKeeper
+	evmKeeper anteinterfaces.EVMKeeper
+}
+
+func NewSetPubKeyDecorator(ak evmtypes.AccountKeeper, ek anteinterfaces.EVMKeeper) SetPubKeyDecorator {
+	return SetPubKeyDecorator{
+		ak:        ak,
+		evmKeeper: ek,
+	}
+}
+
+func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	sigTx, ok := tx.(authsigning.SigVerifiableTx)
+	if !ok {
+		return ctx, errorsmod.Wrap(errortypes.ErrTxDecode, "invalid tx type")
+	}
+
+	pubkeys, err := sigTx.GetPubKeys()
+	if err != nil {
+		return ctx, err
+	}
+	signers, err := sigTx.GetSigners()
+	if err != nil {
+		return ctx, err
+	}
+
+	for i, pk := range pubkeys {
+		// PublicKey was omitted from slice since it has already been set in context
+		if pk == nil {
+			if !simulate {
+				continue
+			}
+			pk = simSecp256k1Pubkey
+		}
+
+		err := spkd.evmKeeper.ValidateSignerAnte(ctx, pk, signers[i])
+		if !simulate && err != nil {
+			return ctx, err
+		}
+
+		acc := spkd.ak.GetAccount(ctx, signers[i])
+		if acc == nil {
+			return ctx, errorsmod.Wrapf(errortypes.ErrNotFound, "account of signer %s is not found", common.BytesToAddress(signers[i]).String())
+		}
+		// account already has pubkey set,no need to reset
+		if acc.GetPubKey() != nil {
+			continue
+		}
+		err = acc.SetPubKey(pk)
+		if err != nil {
+			return ctx, errorsmod.Wrap(errortypes.ErrInvalidPubKey, err.Error())
+		}
+		spkd.ak.SetAccount(ctx, acc)
+	}
+
+	// Also emit the following events, so that txs can be indexed by these
+	// indices:
+	// - signature (via `tx.signature='<sig_as_base64>'`),
+	// - concat(address,"/",sequence) (via `tx.acc_seq='cosmos1abc...def/42'`).
+	sigs, err := sigTx.GetSignaturesV2()
+	if err != nil {
+		return ctx, err
+	}
+
+	var events sdk.Events
+	for i, sig := range sigs {
+		events = append(events, sdk.NewEvent(sdk.EventTypeTx,
+			sdk.NewAttribute(sdk.AttributeKeyAccountSequence, fmt.Sprintf("%s/%d", signers[i], sig.Sequence)),
+		))
+
+		sigBzs, err := signatureDataToBz(sig.Data)
+		if err != nil {
+			return ctx, err
+		}
+		for _, sigBz := range sigBzs {
+			events = append(events, sdk.NewEvent(sdk.EventTypeTx,
+				sdk.NewAttribute(sdk.AttributeKeySignature, base64.StdEncoding.EncodeToString(sigBz)),
+			))
+		}
+	}
+
+	ctx.EventManager().EmitEvents(events)
 
 	return next(ctx, tx, simulate)
 }
@@ -274,5 +376,64 @@ func VerifySignature(
 		return nil
 	default:
 		return errorsmod.Wrapf(errortypes.ErrTooManySignatures, "unexpected SignatureData %T", sigData)
+	}
+}
+
+// signatureDataToBz converts a SignatureData into raw bytes signature.
+// For SingleSignatureData, it returns the signature raw bytes.
+// For MultiSignatureData, it returns an array of all individual signatures,
+// as well as the aggregated signature.
+func signatureDataToBz(data signing.SignatureData) ([][]byte, error) {
+	if data == nil {
+		return nil, fmt.Errorf("got empty SignatureData")
+	}
+
+	switch data := data.(type) {
+	case *signing.SingleSignatureData:
+		return [][]byte{data.Signature}, nil
+	case *signing.MultiSignatureData:
+		sigs := [][]byte{}
+		var err error
+
+		for _, d := range data.Signatures {
+			nestedSigs, err := signatureDataToBz(d)
+			if err != nil {
+				return nil, err
+			}
+			sigs = append(sigs, nestedSigs...)
+		}
+
+		multisig := cryptotypes.MultiSignature{
+			Signatures: sigs,
+		}
+		aggregatedSig, err := multisig.Marshal()
+		if err != nil {
+			return nil, err
+		}
+		sigs = append(sigs, aggregatedSig)
+
+		return sigs, nil
+	default:
+		return nil, errortypes.ErrInvalidType.Wrapf("unexpected signature data type %T", data)
+	}
+}
+
+func GetAccAddressBytesFromPubkey(ctx sdk.Context, evmKeeper anteinterfaces.EVMKeeper, pk cryptotypes.PubKey) ([]byte, error) {
+	var addressFromPubkey []byte
+	if pk.Type() == "secp256k1" {
+		addressFromPubkey = pk.Address().Bytes()
+		return addressFromPubkey, nil
+	} else if pk.Type() == ethsecp256k1.KeyType {
+		evmAddressFromPubkey, err := evmtypes.PubkeyBytesToEVMAddress(pk.Bytes())
+		if err != nil {
+			return nil, errorsmod.Wrapf(errortypes.ErrInvalidPubKey,
+				"Pubkey is invalid to convert to evm address: %s", pk.String())
+		}
+		signerFromPubkey := evmKeeper.GetCosmosAddressMapping(ctx, *evmAddressFromPubkey)
+		addressFromPubkey = signerFromPubkey.Bytes()
+		return addressFromPubkey, nil
+	} else {
+		return nil, errorsmod.Wrapf(errortypes.ErrInvalidPubKey,
+			"Invalid pubkey type: %s", pk.Type())
 	}
 }

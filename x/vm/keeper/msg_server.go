@@ -12,6 +12,7 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmos/evm/x/vm/types"
 	"github.com/hashicorp/go-metrics"
@@ -151,12 +152,33 @@ func (k *Keeper) SetMappingEvmAddress(goCtx context.Context, msg *types.MsgSetMa
 		return nil, fmt.Errorf("invalid signer address: %w", err)
 	}
 
+	// already checked at validateBasic, but double check here to make sure
+	cosmosAddress, err := types.PubkeyToCosmosAddress(msg.Pubkey)
+	if err != nil {
+		return nil, err
+	}
+	if msg.Signer != cosmosAddress.String() {
+		return nil, errorsmod.Wrap(
+			sdkerrors.ErrInvalidPubKey,
+			"Signer does not match the given pubkey",
+		)
+	}
+
 	evmAddress, err := types.PubkeyToEVMAddress(msg.Pubkey)
 	if err != nil {
 		return nil, err
 	}
 
 	k.SetAddressMapping(ctx, signer, *evmAddress)
+
+	err = k.MigrateNonce(ctx, *evmAddress, cosmosAddress)
+	if err != nil {
+		return nil, err
+	}
+	err = k.MigrateBalance(ctx, *evmAddress, cosmosAddress)
+	if err != nil {
+		return nil, err
+	}
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeSetMappingEvmAddress,

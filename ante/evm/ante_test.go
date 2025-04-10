@@ -12,7 +12,7 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
-	"github.com/cosmos/cosmos-sdk/x/authz"
+	authz "github.com/cosmos/cosmos-sdk/x/authz"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 	testconstants "github.com/cosmos/evm/testutil/constants"
@@ -25,9 +25,10 @@ import (
 
 func (suite *AnteTestSuite) TestAnteHandler() {
 	var (
-		ctx     sdk.Context
-		addr    common.Address
-		privKey cryptotypes.PrivKey
+		ctx           sdk.Context
+		addr          common.Address
+		privKey       cryptotypes.PrivKey
+		cosmosAddress sdk.AccAddress
 	)
 	to := utiltx.GenerateAddress()
 
@@ -43,7 +44,7 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		ctx = suite.GetNetwork().GetContext()
 
 		pubKey := base64.StdEncoding.EncodeToString(privKey.PubKey().Bytes())
-		cosmosAddress, _ := evmtypes.PubkeyBytesToCosmosAddress(privKey.PubKey().Bytes())
+		cosmosAddress, _ = evmtypes.PubkeyBytesToCosmosAddress(privKey.PubKey().Bytes())
 		msg := evmtypes.NewMsgSetMappingEvmAddress(cosmosAddress.String(), pubKey)
 		suite.GetNetwork().App.EVMKeeper.SetMappingEvmAddress(ctx, &msg)
 
@@ -73,6 +74,9 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		GasPrice:  big.NewInt(150),
 		GasFeeCap: big.NewInt(200),
 	}
+
+	_ = ethContractCreationTxParams
+	_ = ethTxParams
 
 	testCases := []struct {
 		name      string
@@ -271,10 +275,9 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success - DeliverTx EIP712 signed Cosmos Tx with MsgSend",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				gas := uint64(200000)
 				amount := sdk.NewCoins(sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(100*int64(gas)))) //#nosec G115
-				txBuilder, err := suite.CreateTestEIP712TxBuilderMsgSend(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712TxBuilderMsgSend(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -282,11 +285,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success - DeliverTx EIP712 signed Cosmos Tx with DelegateMsg",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				gas := uint64(200000)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(100*int64(gas))) //#nosec G115
 				amount := sdk.NewCoins(coinAmount)
-				txBuilder, err := suite.CreateTestEIP712TxBuilderMsgDelegate(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712TxBuilderMsgDelegate(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -294,11 +296,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 create validator",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MsgCreateValidator(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MsgCreateValidator(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -306,11 +307,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 create validator (with blank fields)",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MsgCreateValidator2(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MsgCreateValidator2(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -318,13 +318,12 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 MsgSubmitProposal",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				gasAmount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
 				// reusing the gasAmount for deposit
 				deposit := sdk.NewCoins(coinAmount)
-				txBuilder, err := suite.CreateTestEIP712SubmitProposal(from, privKey, ctx.ChainID(), gas, gasAmount, deposit)
+				txBuilder, err := suite.CreateTestEIP712SubmitProposal(cosmosAddress, privKey, ctx.ChainID(), gas, gasAmount, deposit)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -332,7 +331,6 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 MsgGrant",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				grantee := sdk.AccAddress("_______grantee______")
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				gasAmount := sdk.NewCoins(coinAmount)
@@ -340,10 +338,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 				blockTime := time.Date(1, 1, 1, 1, 1, 1, 1, time.UTC)
 				expiresAt := blockTime.Add(time.Hour)
 				msg, err := authz.NewMsgGrant(
-					from, grantee, &banktypes.SendAuthorization{SpendLimit: gasAmount}, &expiresAt,
+					cosmosAddress, grantee, &banktypes.SendAuthorization{SpendLimit: gasAmount}, &expiresAt,
 				)
 				suite.Require().NoError(err)
-				builder, err := suite.CreateTestEIP712SingleMessageTxBuilder(privKey, ctx.ChainID(), gas, gasAmount, msg)
+				builder, err := suite.CreateTestEIP712SingleMessageTxBuilder(cosmosAddress, privKey, ctx.ChainID(), gas, gasAmount, msg)
 				suite.Require().NoError(err)
 
 				return builder.GetTx()
@@ -353,11 +351,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 MsgGrantAllowance",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				gasAmount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712GrantAllowance(from, privKey, ctx.ChainID(), gas, gasAmount)
+				txBuilder, err := suite.CreateTestEIP712GrantAllowance(cosmosAddress, privKey, ctx.ChainID(), gas, gasAmount)
 				suite.Require().NoError(err)
 
 				return txBuilder.GetTx()
@@ -366,11 +363,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 edit validator",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MsgEditValidator(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MsgEditValidator(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -378,11 +374,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 submit evidence",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MsgSubmitEvidence(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MsgSubmitEvidence(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -390,11 +385,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 submit proposal v1",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712SubmitProposalV1(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712SubmitProposalV1(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -402,11 +396,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 MsgExec",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MsgExec(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MsgExec(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -414,11 +407,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 MsgVoteV1",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MsgVoteV1(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MsgVoteV1(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -426,11 +418,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 Multiple MsgSend",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MultipleMsgSend(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MultipleMsgSend(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -438,11 +429,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 Multiple Different Msgs",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MultipleDifferentMsgs(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MultipleDifferentMsgs(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.RequireErrorForLegacyTypedData(err)
 				return suite.TxForLegacyTypedData(txBuilder)
 			}, false, false, !suite.useLegacyEIP712TypedData,
@@ -450,11 +440,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 Same Msgs, Different Schemas",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712SameMsgDifferentSchemas(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712SameMsgDifferentSchemas(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.RequireErrorForLegacyTypedData(err)
 				return suite.TxForLegacyTypedData(txBuilder)
 			}, false, false, !suite.useLegacyEIP712TypedData,
@@ -462,11 +451,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 Zero Value Array (Should Not Omit Field)",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712ZeroValueArray(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712ZeroValueArray(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.RequireErrorForLegacyTypedData(err)
 				return suite.TxForLegacyTypedData(txBuilder)
 			}, false, false, !suite.useLegacyEIP712TypedData,
@@ -474,11 +462,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 Zero Value Number (Should Not Omit Field)",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712ZeroValueNumber(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712ZeroValueNumber(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.RequireErrorForLegacyTypedData(err)
 				return suite.TxForLegacyTypedData(txBuilder)
 			}, false, false, !suite.useLegacyEIP712TypedData,
@@ -486,11 +473,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 MsgTransfer",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MsgTransfer(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MsgTransfer(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -498,11 +484,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"success- DeliverTx EIP712 MsgTransfer Without Memo",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MsgTransferWithoutMemo(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MsgTransferWithoutMemo(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, true,
@@ -510,11 +495,10 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"fails - DeliverTx EIP712 Multiple Signers",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				coinAmount := sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(20))
 				amount := sdk.NewCoins(coinAmount)
 				gas := uint64(200000)
-				txBuilder, err := suite.CreateTestEIP712MultipleSignerMsgs(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712MultipleSignerMsgs(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, false,
@@ -522,10 +506,9 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"fails - DeliverTx EIP712 signed Cosmos Tx with wrong Chain ID",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				gas := uint64(200000)
 				amount := sdk.NewCoins(sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(100*int64(gas)))) //#nosec G115
-				txBuilder, err := suite.CreateTestEIP712TxBuilderMsgSend(from, privKey, "cosmos_9002-1", gas, amount)
+				txBuilder, err := suite.CreateTestEIP712TxBuilderMsgSend(cosmosAddress, privKey, "cosmos_9002-1", gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, false,
@@ -533,10 +516,9 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"fails - DeliverTx EIP712 signed Cosmos Tx with different gas fees",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				gas := uint64(200000)
 				amount := sdk.NewCoins(sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(100*int64(gas)))) //#nosec G115
-				txBuilder, err := suite.CreateTestEIP712TxBuilderMsgSend(from, privKey, ctx.ChainID(), gas, amount)
+				txBuilder, err := suite.CreateTestEIP712TxBuilderMsgSend(cosmosAddress, privKey, ctx.ChainID(), gas, amount)
 				suite.Require().NoError(err)
 				txBuilder.SetGasLimit(uint64(300000))
 				txBuilder.SetFeeAmount(sdk.NewCoins(sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(30))))
@@ -546,10 +528,9 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"fails - DeliverTx EIP712 signed Cosmos Tx with invalid chain id",
 			func() sdk.Tx {
-				from := suite.GetKeyring().GetAccAddr(0)
 				gas := uint64(200000)
 				amount := sdk.NewCoins(sdk.NewCoin(testconstants.ExampleAttoDenom, sdkmath.NewInt(100*int64(gas)))) //#nosec G115
-				txBuilder, err := suite.CreateTestEIP712TxBuilderMsgSend(from, privKey, "cosmos_9005-1", gas, amount)
+				txBuilder, err := suite.CreateTestEIP712TxBuilderMsgSend(cosmosAddress, privKey, "cosmos_9005-1", gas, amount)
 				suite.Require().NoError(err)
 				return txBuilder.GetTx()
 			}, false, false, false,
@@ -612,13 +593,13 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		{
 			"passes - Single-signer EIP-712",
 			func() sdk.Tx {
-				evmDenom := evmtypes.GetEVMCoinDenom()
+				addr, privKey := utiltx.NewAddrKey()
 				msg := banktypes.NewMsgSend(
 					sdk.AccAddress(privKey.PubKey().Address()),
 					addr[:],
 					sdk.NewCoins(
 						sdk.NewCoin(
-							evmDenom,
+							"uatomz",
 							sdkmath.NewInt(1),
 						),
 					),

@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"cosmossdk.io/math"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx"
 	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
@@ -31,6 +32,7 @@ type EVMKeeper interface {
 	// GetMinGasPrice returns the MinGasPrice param from the fee market module
 	// adapted according to the evm denom decimals
 	GetMinGasPrice(ctx sdk.Context) math.LegacyDec
+	ValidateSignerAnte(ctx sdk.Context, pk cryptotypes.PubKey, signer sdk.AccAddress) error
 }
 
 // FeeMarketKeeper exposes the required feemarket keeper interface required for ante handlers
