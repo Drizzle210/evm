@@ -102,7 +102,7 @@ func CheckBlockGasLimit(ctx sdktypes.Context, gasWanted uint64, minPriority int6
 	// NOTE: it's important here to use the gas wanted instead of the gas consumed
 	// from the tx gas pool. The latter only has the value so far since the
 	// EthSetupContextDecorator, so it will never exceed the block gas limit.
-	if gasWanted > blockGasLimit {
+	if blockGasLimit > 0 && gasWanted > blockGasLimit {
 		return ctx, errorsmod.Wrapf(
 			errortypes.ErrOutOfGas,
 			"tx gas (%d) exceeds block gas limit (%d)",
