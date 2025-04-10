@@ -22,6 +22,8 @@ import (
 )
 
 // consensusVersion defines the current x/feemarket module consensus version.
+// current oraichain version is 3
+// migrate 3 => 5
 const consensusVersion = 5
 
 var (
