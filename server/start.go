@@ -49,14 +49,19 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// DBOpener is a function to open `application.db`, potentially with customized options.
-type DBOpener func(opts types.AppOptions, rootDir string, backend dbm.BackendType) (dbm.DB, error)
-
 // StartOptions defines options that can be customized in `StartCmd`
 type StartOptions struct {
 	AppCreator      types.AppCreator
 	DefaultNodeHome string
-	DBOpener        DBOpener
+	// DBOpener can be used to customize db opening, for example customize db options or support different db backends,
+	// default to the builtin db opener.
+	// DBOpener is a function to open `application.db`, potentially with customized options.
+	DBOpener func(opts types.AppOptions, rootDir string, backend dbm.BackendType) (dbm.DB, error)
+	// PostSetup can be used to setup extra services under the same cancellable context,
+	// it's not called in stand-alone mode, only for in-process mode.
+	PostSetup func(svrCtx *server.Context, clientCtx client.Context, ctx context.Context, g *errgroup.Group, node *node.Node) (func(), error)
+	// AddFlags add custom flags to start cmd
+	AddFlags func(cmd *cobra.Command)
 }
 
 // NewDefaultStartOptions use the default db opener provided in tm-db.
@@ -71,6 +76,10 @@ func NewDefaultStartOptions(appCreator types.AppCreator, defaultNodeHome string)
 // StartCmd runs the service passed in, either stand-alone or in-process with
 // CometBFT.
 func StartCmd(opts StartOptions) *cobra.Command {
+	if opts.DBOpener == nil {
+		opts.DBOpener = config.OpenDB
+	}
+
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -204,6 +213,7 @@ which accepts a path for the resulting pprof file.
 
 	cmd.Flags().Uint64(server.FlagStateSyncSnapshotInterval, 0, "State sync snapshot interval")
 	cmd.Flags().Uint32(server.FlagStateSyncSnapshotKeepRecent, 2, "State sync snapshot to keep")
+	cmd.Flags().String(flags.FlagChainID, "", "Network's chain id")
 
 	// add support for all CometBFT-specific command line options
 	tcmd.AddNodeFlags(cmd)
@@ -285,6 +295,7 @@ func startInProcess(svrCtx *server.Context, clientCtx client.Context, opts Start
 	home := cfg.RootDir
 	logger := svrCtx.Logger
 	g, ctx := getCtx(svrCtx, true)
+	var cmtNode *node.Node
 
 	if cpuProfile := svrCtx.Viper.GetString(srvflags.CPUProfile); cpuProfile != "" {
 		fp, err := ethdebug.ExpandHome(cpuProfile)
@@ -390,6 +401,8 @@ func startInProcess(svrCtx *server.Context, clientCtx client.Context, opts Start
 				_ = tmNode.Stop()
 			}
 		}()
+
+		cmtNode = tmNode
 	}
 
 	// Add the tx service to the gRPC router. We only need to register this
@@ -433,14 +446,18 @@ func startInProcess(svrCtx *server.Context, clientCtx client.Context, opts Start
 	}
 
 	if config.API.Enable || config.JSONRPC.Enable {
-		genDoc, err := genDocProvider()
-		if err != nil {
-			return err
+		chainID := svrCtx.Viper.GetString(flags.FlagChainID)
+		if chainID == "" {
+			genDoc, err := genDocProvider()
+			if err != nil {
+				return err
+			}
+			chainID = genDoc.ChainID
 		}
 
 		clientCtx = clientCtx.
 			WithHomeDir(home).
-			WithChainID(genDoc.ChainID)
+			WithChainID(chainID)
 	}
 
 	grpcSrv, clientCtx, err := startGrpcServer(ctx, svrCtx, clientCtx, g, config.GRPC, app)
@@ -472,6 +489,14 @@ func startInProcess(svrCtx *server.Context, clientCtx client.Context, opts Start
 				}
 			}
 		}()
+	}
+
+	if opts.PostSetup != nil {
+		deferFunc, err := opts.PostSetup(svrCtx, clientCtx, ctx, g, cmtNode)
+		if err != nil {
+			return err
+		}
+		defer deferFunc()
 	}
 
 	// At this point it is safe to block the process if we're in query only mode as
