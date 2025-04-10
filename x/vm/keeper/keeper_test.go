@@ -193,6 +193,7 @@ func (suite *KeeperTestSuite) TestMsgSetMappingEvmAddress() {
 	castAddress := sdk.AccAddress(expectedEvmAddress[:])
 	acc := suite.network.App.AccountKeeper.NewAccountWithAddress(suite.ctx, castAddress)
 	acc.SetSequence(0)
+	fmt.Println("acc: ", acc)
 	suite.network.App.AccountKeeper.SetAccount(suite.ctx, acc)
 
 	// fixture for migrate nonce
@@ -334,8 +335,50 @@ func (suite *KeeperTestSuite) TestMsgSetMappingEvmAddress() {
 				suite.Require().Error(err)
 				suite.Require().Contains(err.Error(), tc.errArgs.contains)
 			}
+			suite.network.App.EVMKeeper.DeleteAddressMapping(suite.ctx, signerAddress, *expectedEvmAddress)
 		})
 	}
+}
+
+func (suite *KeeperTestSuite) TestBankKeeperGetBalance() {
+	config := sdk.GetConfig()
+	config.SetBech32PrefixForAccount("orai", "oraipub")
+	signer := "orai1knzg7jdc49ghnc2pkqg6vks8ccsk6efzfgv6gv"
+	pubkey := "AvSl0d9JrHCW4mdEyHvZu076WxLgH0bBVLigUcFm4UjV"
+	expectedEvmAddress, _ := types.PubkeyToEVMAddress(pubkey)
+
+	castAddress := sdk.AccAddress(expectedEvmAddress[:])
+	acc := suite.network.App.AccountKeeper.NewAccountWithAddress(suite.ctx, castAddress)
+	acc.SetSequence(0)
+	suite.network.App.AccountKeeper.SetAccount(suite.ctx, acc)
+
+	// fixture for migrate nonce
+	signerAddress, _ := sdk.AccAddressFromBech32(signer)
+	signerAcc := suite.network.App.AccountKeeper.NewAccountWithAddress(suite.ctx, signerAddress)
+	signerAcc.SetSequence(1)
+	suite.network.App.AccountKeeper.SetAccount(suite.ctx, signerAcc)
+
+	// fixture for migrate balance
+	mintCoins := sdk.NewCoins(sdk.NewCoin(suite.EvmDenom(), sdkmath.NewInt(50)))
+	suite.network.App.BankKeeper.MintCoins(suite.ctx, types.ModuleName, mintCoins)
+	castCoins := sdk.NewCoins(sdk.NewCoin(suite.EvmDenom(), sdkmath.NewInt(5)))
+	signerCoins := sdk.NewCoins(sdk.NewCoin(suite.EvmDenom(), sdkmath.NewInt(10)))
+	moduleAcc := suite.network.App.AccountKeeper.GetModuleAccount(suite.ctx, types.ModuleName)
+	suite.network.App.BankKeeper.SendCoins(suite.ctx, moduleAcc.GetAddress(), castAddress, castCoins)
+	suite.network.App.BankKeeper.SendCoins(suite.ctx, moduleAcc.GetAddress(), signerAddress, signerCoins)
+
+	msg := types.NewMsgSetMappingEvmAddress(signer, pubkey)
+	_, err := suite.network.App.EVMKeeper.SetMappingEvmAddress(suite.ctx, &msg)
+	suite.Require().NoError(err)
+
+	// After set mapping evm -> combine balances of both addresses
+	// when querying balance of both evm & cosmos address -> should return the same value
+	expectedBalance := int64(15)
+	castBalance := suite.network.App.EVMKeeper.GetBalance(suite.ctx, *expectedEvmAddress)
+	suite.Require().Equal(castBalance.Int64(), expectedBalance)
+	signerBalance := suite.network.App.BankKeeper.GetBalance(suite.ctx, signerAddress, suite.EvmDenom())
+	suite.Require().Equal(signerBalance.Amount.Int64(), expectedBalance)
+
 }
 
 func (suite *KeeperTestSuite) TestGetAccAddressBytesFromPubkey() {

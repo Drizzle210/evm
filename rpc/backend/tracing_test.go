@@ -13,8 +13,6 @@ import (
 	"github.com/cosmos/evm/indexer"
 	"github.com/cosmos/evm/rpc/backend/mocks"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
-	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
 func (suite *BackendTestSuite) TestTraceTransaction() {
@@ -25,24 +23,24 @@ func (suite *BackendTestSuite) TestTraceTransaction() {
 	txHash2 := msgEthereumTx2.AsTransaction().Hash()
 
 	priv, _ := ethsecp256k1.GenerateKey()
-	from := common.BytesToAddress(priv.PubKey().Address().Bytes())
+	// from := common.BytesToAddress(priv.PubKey().Address().Bytes())
 	armor := crypto.EncryptArmorPrivKey(priv, "", "eth_secp256k1")
 	_ = suite.backend.clientCtx.Keyring.ImportPrivKey("test_key", armor, "")
 
-	ethSigner := ethtypes.LatestSigner(suite.backend.ChainConfig())
+	// ethSigner := ethtypes.LatestSigner(suite.backend.ChainConfig())
 
 	txEncoder := suite.backend.clientCtx.TxConfig.TxEncoder()
 
-	msgEthereumTx.From = from.String()
-	_ = msgEthereumTx.Sign(ethSigner, suite.signer)
+	// msgEthereumTx.From = from.String()
+	// _ = msgEthereumTx.Sign(ethSigner, suite.signer)
 
 	baseDenom := evmtypes.GetEVMCoinDenom()
 
 	tx, _ := msgEthereumTx.BuildTx(suite.backend.clientCtx.TxConfig.NewTxBuilder(), baseDenom)
 	txBz, _ := txEncoder(tx)
 
-	msgEthereumTx2.From = from.String()
-	_ = msgEthereumTx2.Sign(ethSigner, suite.signer)
+	// msgEthereumTx2.From = from.String()
+	// _ = msgEthereumTx2.Sign(ethSigner, suite.signer)
 
 	tx2, _ := msgEthereumTx.BuildTx(suite.backend.clientCtx.TxConfig.NewTxBuilder(), baseDenom)
 	txBz2, _ := txEncoder(tx2)

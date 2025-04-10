@@ -6,6 +6,7 @@ import (
 
 	"github.com/cometbft/cometbft/libs/bytes"
 	cmtrpcclient "github.com/cometbft/cometbft/rpc/client"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/evm/rpc/backend/mocks"
 	rpctypes "github.com/cosmos/evm/rpc/types"
@@ -365,10 +366,11 @@ func (suite *BackendTestSuite) TestGetTransactionCount() {
 			"pass - account doesn't exist",
 			false,
 			rpctypes.NewBlockNumber(big.NewInt(1)),
-			func(common.Address, rpctypes.BlockNumber) {
+			func(addr common.Address, bn rpctypes.BlockNumber) {
 				var header metadata.MD
 				queryClient := suite.backend.queryClient.QueryClient.(*mocks.EVMQueryClient)
 				RegisterParams(queryClient, &header, 1)
+				RegisterMappedCosmosAddress(queryClient, addr, 1)
 			},
 			true,
 			hexutil.Uint64(0),
@@ -377,7 +379,7 @@ func (suite *BackendTestSuite) TestGetTransactionCount() {
 			"fail - block height is in the future",
 			false,
 			rpctypes.NewBlockNumber(big.NewInt(10000)),
-			func(common.Address, rpctypes.BlockNumber) {
+			func(addr common.Address, bn rpctypes.BlockNumber) {
 				var header metadata.MD
 				queryClient := suite.backend.queryClient.QueryClient.(*mocks.EVMQueryClient)
 				RegisterParams(queryClient, &header, 1)
@@ -410,12 +412,14 @@ func (suite *BackendTestSuite) TestGetTransactionCount() {
 	for _, tc := range testCases {
 		suite.Run(fmt.Sprintf("Case %s", tc.name), func() {
 			suite.SetupTest()
-
 			addr := utiltx.GenerateAddress()
 			if tc.accExists {
 				addr = common.BytesToAddress(suite.acc.Bytes())
 			}
 
+			// set prefix orai
+			config := sdk.GetConfig()
+			config.SetBech32PrefixForAccount("orai", "oraipub")
 			tc.registerMock(addr, tc.blockNum)
 
 			txCount, err := suite.backend.GetTransactionCount(addr, tc.blockNum)

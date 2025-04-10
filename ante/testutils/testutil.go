@@ -69,6 +69,7 @@ func (suite *AnteTestSuite) SetupTest() {
 	cp.Block.MaxGas = 1000000000000000000
 	customGenesis[consensustypes.ModuleName] = cp
 
+	sdk.GetConfig().SetBech32PrefixForAccount("orai", "oraipub")
 	nw := network.NewUnitTestNetwork(
 		network.WithPreFundedAccounts(keys.GetAllAccAddrs()...),
 		network.WithCustomGenesis(customGenesis),

@@ -69,6 +69,9 @@ func (suite *BackendTestSuite) SetupTest() {
 	suite.signer = utiltx.NewSigner(priv)
 	suite.Require().NoError(err)
 
+	// Set bech32 prefix for account
+	sdk.GetConfig().SetBech32PrefixForAccount("orai", "oraipub")
+
 	nw := testnetwork.New()
 	encodingConfig := nw.GetEncodingConfig()
 	clientCtx := client.Context{}.WithChainID(ChainID).

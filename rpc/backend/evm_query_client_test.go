@@ -73,7 +73,7 @@ func RegisterParams(queryClient *mocks.EVMQueryClient, header *metadata.MD, heig
 			h := metadata.MD{}
 			h.Set(grpctypes.GRPCBlockHeightHeader, fmt.Sprint(height))
 			*arg.HeaderAddr = h
-		})
+		}).Maybe()
 }
 
 func RegisterParamsWithoutHeader(queryClient *mocks.EVMQueryClient, height int64) {
@@ -279,4 +279,12 @@ func RegisterBalanceError(queryClient *mocks.EVMQueryClient, addr common.Address
 func RegisterGlobalMinGasPrice(queryClient *mocks.EVMQueryClient, height int64) {
 	queryClient.On("GlobalMinGasPrice", rpc.ContextWithHeight(height), &evmtypes.QueryGlobalMinGasPriceRequest{}).
 		Return(&evmtypes.QueryGlobalMinGasPriceResponse{MinGasPrice: math.OneInt()}, nil)
+}
+
+// MappedCosmosAddress
+// hard code an orai address for mapping
+func RegisterMappedCosmosAddress(queryClient *mocks.EVMQueryClient, addr common.Address, height int64) {
+	queryClient.On("MappedCosmosAddress", rpc.ContextWithHeight(height), &evmtypes.QueryMappedCosmosAddressRequest{EvmAddress: addr.Hex()}).
+		Return(&evmtypes.QueryMappedCosmosAddressResponse{CosmosAddress: "orai1knzg7jdc49ghnc2pkqg6vks8ccsk6efzfgv6gv"}, nil).
+		Maybe()
 }

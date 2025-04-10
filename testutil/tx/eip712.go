@@ -15,7 +15,6 @@ import (
 	"github.com/cosmos/evm/ethereum/eip712"
 	exampleapp "github.com/cosmos/evm/example_chain"
 	"github.com/cosmos/evm/types"
-	evmtypes "github.com/cosmos/evm/x/vm/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 )
@@ -69,10 +68,7 @@ func PrepareEIP712CosmosTx(
 		return nil, err
 	}
 	chainIDNum := pc.Uint64()
-	from, err := evmtypes.PubkeyBytesToCosmosAddress(txArgs.Priv.PubKey().Bytes())
-	if err != nil {
-		return nil, err
-	}
+	from := sdk.AccAddress(txArgs.Priv.PubKey().Address().Bytes())
 	accNumber := exampleApp.AccountKeeper.GetAccount(ctx, from).GetAccountNumber()
 
 	nonce, err := exampleApp.AccountKeeper.GetSequence(ctx, from)
@@ -131,10 +127,7 @@ func signCosmosEIP712Tx(
 ) (client.TxBuilder, error) {
 	priv := args.CosmosTxArgs.Priv
 
-	from, err := evmtypes.PubkeyBytesToCosmosAddress(priv.PubKey().Bytes())
-	if err != nil {
-		return nil, err
-	}
+	from := sdk.AccAddress(priv.PubKey().Address().Bytes())
 	nonce, err := exampleApp.AccountKeeper.GetSequence(ctx, from)
 	if err != nil {
 		return nil, err
