@@ -25,6 +25,10 @@ import (
 )
 
 // consensusVersion defines the current x/erc20 module consensus version.
+// Current oraichain verion of erc20 module is 1
+// we will keep consensus version upstream with cosmos/evm
+// for futures migration instead of change back to oraichain version
+// => Need migrate from v1 -> v4
 const consensusVersion = 4
 
 // type check to ensure the interface is properly implemented
@@ -125,6 +129,20 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), &am.keeper)
 	types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
+
+	m := keeper.NewMigrator(am.keeper)
+	err := cfg.RegisterMigration(types.ModuleName, 1, m.Migrate1to2)
+	if err != nil {
+		panic(err)
+	}
+	err = cfg.RegisterMigration(types.ModuleName, 2, m.Migrate2to3)
+	if err != nil {
+		panic(err)
+	}
+	err = cfg.RegisterMigration(types.ModuleName, 3, m.Migrate3to4)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, data json.RawMessage) []abci.ValidatorUpdate {
