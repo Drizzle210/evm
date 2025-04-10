@@ -1,12 +1,16 @@
 package keeper_test
 
 import (
+	"encoding/base64"
 	"fmt"
 	"math/big"
 
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
+	cosmossecp256k1 "github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	"github.com/cosmos/evm/crypto/ethsecp256k1"
 	"github.com/cosmos/evm/utils"
 	"github.com/cosmos/evm/x/vm/statedb"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
@@ -141,6 +145,154 @@ func (suite *KeeperTestSuite) TestGetAccountOrEmpty() {
 				suite.Require().Equal(empty, res)
 			} else {
 				suite.Require().NotEqual(empty, res)
+			}
+		})
+	}
+}
+
+func (suite *KeeperTestSuite) TestGetAccAddressBytesFromPubkey() {
+	pubkeyString := "Ah4NweWyFaVG5xcOwY5I7Tm4mmfPgLtS+Qn3jvXLX0VP"
+	compressedPubkeyBytes, _ := base64.StdEncoding.DecodeString(pubkeyString)
+	ethPubkey := ethsecp256k1.PubKey{Key: compressedPubkeyBytes}
+	cosmosPubkey := cosmossecp256k1.PubKey{Key: compressedPubkeyBytes}
+	cosmosAddress := sdk.AccAddress(cosmosPubkey.Address().Bytes())
+	cosmosAddressFromEvm := sdk.AccAddress(ethPubkey.Address().Bytes())
+	evmAddress := common.BytesToAddress(ethPubkey.Address().Bytes())
+
+	type errArgs struct {
+		expectPass bool
+		contains   string
+	}
+
+	tests := []struct {
+		name               string
+		errArgs            errArgs
+		pubkey             cryptotypes.PubKey
+		expectedAccAddress string
+		malleate           func()
+	}{
+		{
+			"secp256k1 pubkey valid",
+			errArgs{
+				expectPass: true,
+			},
+			&cosmosPubkey,
+			cosmosAddress.String(),
+			func() {},
+		},
+		{
+			"eth_secp256k1 pubkey valid with no address mapping",
+			errArgs{
+				expectPass: true,
+			},
+			&ethPubkey,
+			cosmosAddressFromEvm.String(),
+			func() {},
+		},
+		{
+			"eth_secp256k1 pubkey valid with addess mapping",
+			errArgs{
+				expectPass: true,
+			},
+			&ethPubkey,
+			cosmosAddress.String(),
+			func() {
+				suite.network.App.EVMKeeper.SetAddressMapping(suite.network.GetContext(), cosmosAddress, evmAddress)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		suite.Run(tc.name, func() {
+			suite.SetupTest()
+			tc.malleate()
+			accAddress, err := suite.network.App.EVMKeeper.GetAccAddressBytesFromPubkey(suite.network.GetContext(), tc.pubkey)
+
+			if tc.errArgs.expectPass {
+				suite.Require().NoError(err)
+				suite.Require().Equal(tc.expectedAccAddress, sdk.AccAddress(accAddress).String())
+			} else {
+				suite.Require().Error(err)
+				suite.Require().Contains(err.Error(), tc.errArgs.contains)
+			}
+		})
+	}
+}
+
+func (suite *KeeperTestSuite) TestValidateSignerEIP712Ante() {
+	pubkeyString := "Ah4NweWyFaVG5xcOwY5I7Tm4mmfPgLtS+Qn3jvXLX0VP"
+	compressedPubkeyBytes, _ := base64.StdEncoding.DecodeString(pubkeyString)
+	ethPubkey := ethsecp256k1.PubKey{Key: compressedPubkeyBytes}
+	cosmosPubkey := cosmossecp256k1.PubKey{Key: compressedPubkeyBytes}
+	cosmosAddress := sdk.AccAddress(cosmosPubkey.Address().Bytes())
+	cosmosAddressFromEvm := sdk.AccAddress(ethPubkey.Address().Bytes())
+	evmAddress := common.BytesToAddress(ethPubkey.Address().Bytes())
+
+	type errArgs struct {
+		expectPass bool
+		contains   string
+	}
+
+	tests := []struct {
+		name     string
+		errArgs  errArgs
+		pubkey   cryptotypes.PubKey
+		signer   sdk.AccAddress
+		malleate func()
+	}{
+		{
+			"secp256k1 pubkey valid",
+			errArgs{
+				expectPass: true,
+			},
+			&cosmosPubkey,
+			cosmosAddress,
+			func() {},
+		},
+		{
+			"eth_secp256k1 pubkey valid with no address mapping",
+			errArgs{
+				expectPass: true,
+			},
+			&ethPubkey,
+			cosmosAddressFromEvm,
+			func() {},
+		},
+		{
+			"eth_secp256k1 pubkey valid with addess mapping",
+			errArgs{
+				expectPass: true,
+			},
+			&ethPubkey,
+			cosmosAddress,
+			func() {
+				suite.network.App.EVMKeeper.SetAddressMapping(suite.network.GetContext(), cosmosAddress, evmAddress)
+			},
+		},
+		{
+			"secp256k1 pubkey invalid signer don't match",
+			errArgs{
+				expectPass: false,
+				contains:   "does not match signer",
+			},
+			&cosmosPubkey,
+			cosmosAddressFromEvm,
+			func() {
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		suite.Run(tc.name, func() {
+			suite.SetupTest()
+			tc.malleate()
+			err := suite.network.App.EVMKeeper.ValidateSignerAnte(suite.network.GetContext(), tc.pubkey, tc.signer)
+
+			if tc.errArgs.expectPass {
+				suite.Require().NoError(err)
+			} else {
+				suite.Require().Error(err)
+				suite.Require().Contains(err.Error(), tc.errArgs.contains)
 			}
 		})
 	}
