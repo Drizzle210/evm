@@ -120,7 +120,8 @@ func TestQueryBlockGas(t *testing.T) {
 			ctx = nw.GetContext()
 			qc := nw.GetFeeMarketClient()
 
-			gas := nw.App.FeeMarketKeeper.GetBlockGasWanted(ctx)
+			gas, err := nw.App.FeeMarketKeeper.GetBlockGasWanted(ctx)
+			require.NoError(t, err)
 			exp := &types.QueryBlockGasResponse{Gas: int64(gas)} //#nosec G115
 
 			res, err := qc.BlockGas(ctx.Context(), &types.QueryBlockGasRequest{})

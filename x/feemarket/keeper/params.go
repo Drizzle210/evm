@@ -9,8 +9,8 @@ import (
 
 // GetParams returns the total set of fee market parameters.
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.ParamsKey)
+	store := k.storeService.OpenKVStore(ctx)
+	bz, _ := store.Get(types.ParamsKey)
 	if len(bz) == 0 {
 		k.ss.GetParamSetIfExists(ctx, &params)
 	} else {
@@ -31,7 +31,7 @@ func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 
 // SetParams sets the fee market params in a single key
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) error {
-	store := ctx.KVStore(k.storeKey)
+	store := k.storeService.OpenKVStore(ctx)
 	bz, err := k.cdc.Marshal(&params)
 	if err != nil {
 		return err
