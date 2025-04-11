@@ -486,7 +486,7 @@ func NewExampleApp(
 	// Cosmos EVM keepers
 	app.FeeMarketKeeper = feemarketkeeper.NewKeeper(
 		appCodec, authtypes.NewModuleAddress(govtypes.ModuleName),
-		keys[feemarkettypes.StoreKey],
+		runtime.NewKVStoreService(keys[feemarkettypes.StoreKey]),
 		tkeys[feemarkettypes.TransientKey],
 		app.GetSubspace(feemarkettypes.ModuleName),
 	)
@@ -510,7 +510,7 @@ func NewExampleApp(
 	)
 
 	app.Erc20Keeper = erc20keeper.NewKeeper(
-		keys[erc20types.StoreKey],
+		runtime.NewKVStoreService(keys[erc20types.StoreKey]),
 		appCodec,
 		authtypes.NewModuleAddress(govtypes.ModuleName),
 		app.AccountKeeper,
