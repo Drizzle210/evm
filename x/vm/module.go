@@ -22,6 +22,8 @@ import (
 )
 
 // consensusVersion defines the current x/evm module consensus version.
+// current oraichain version is 3
+// migrate from 3 => 8
 const consensusVersion = 8
 
 var (
