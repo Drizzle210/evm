@@ -35,8 +35,9 @@ func TestSetGetBlockGasWanted(t *testing.T) {
 
 			tc.malleate()
 
-			gas := nw.App.FeeMarketKeeper.GetBlockGasWanted(ctx)
+			gas, err := nw.App.FeeMarketKeeper.GetBlockGasWanted(ctx)
 			require.Equal(t, tc.expGas, gas, tc.name)
+			require.NoError(t, err)
 		})
 	}
 }

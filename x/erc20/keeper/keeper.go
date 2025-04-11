@@ -3,8 +3,8 @@ package keeper
 import (
 	"fmt"
 
+	"cosmossdk.io/core/store"
 	"cosmossdk.io/log"
-	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
@@ -15,8 +15,8 @@ import (
 
 // Keeper of this module maintains collections of erc20.
 type Keeper struct {
-	storeKey storetypes.StoreKey
-	cdc      codec.BinaryCodec
+	storeService store.KVStoreService
+	cdc          codec.BinaryCodec
 	// the address capable of executing a MsgUpdateParams message. Typically, this should be the x/gov module account.
 	authority sdk.AccAddress
 
@@ -30,7 +30,7 @@ type Keeper struct {
 
 // NewKeeper creates new instances of the erc20 Keeper
 func NewKeeper(
-	storeKey storetypes.StoreKey,
+	storeService store.KVStoreService,
 	cdc codec.BinaryCodec,
 	authority sdk.AccAddress,
 	ak types.AccountKeeper,
@@ -47,7 +47,7 @@ func NewKeeper(
 
 	return Keeper{
 		authority:      authority,
-		storeKey:       storeKey,
+		storeService:   storeService,
 		cdc:            cdc,
 		accountKeeper:  ak,
 		bankKeeper:     bk,

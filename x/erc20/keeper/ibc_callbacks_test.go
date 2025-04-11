@@ -8,6 +8,7 @@ import (
 	"cosmossdk.io/math"
 	"github.com/cosmos/evm/x/erc20/keeper"
 
+	"github.com/cosmos/cosmos-sdk/runtime"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -255,7 +256,7 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 			suite.network.App.IBCKeeper.ChannelKeeper.SetNextSequenceSend(ctx, transfertypes.PortID, cosmosEVMChannel, 1)
 
 			suite.network.App.Erc20Keeper = keeper.NewKeeper(
-				suite.network.App.GetKey(types.StoreKey),
+				runtime.NewKVStoreService(suite.network.App.GetKey(types.StoreKey)),
 				suite.network.App.AppCodec(),
 				authtypes.NewModuleAddress(govtypes.ModuleName),
 				suite.network.App.AccountKeeper,

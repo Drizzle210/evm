@@ -55,8 +55,9 @@ func TestEndBlock(t *testing.T) {
 			err = nw.App.FeeMarketKeeper.EndBlock(ctx)
 			require.NoError(t, err)
 
-			gasWanted := nw.App.FeeMarketKeeper.GetBlockGasWanted(ctx)
+			gasWanted, err := nw.App.FeeMarketKeeper.GetBlockGasWanted(ctx)
 			require.Equal(t, tc.expGasWanted, gasWanted, tc.name)
+			require.NoError(t, err)
 		})
 	}
 }
