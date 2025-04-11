@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
@@ -115,7 +116,7 @@ func (suite *KeeperTestSuite) TestBalanceOf() {
 		suite.SetupTest() // reset
 		mockEVMKeeper = &erc20mocks.EVMKeeper{}
 		suite.network.App.Erc20Keeper = keeper.NewKeeper(
-			suite.network.App.GetKey("erc20"), suite.network.App.AppCodec(),
+			runtime.NewKVStoreService(suite.network.App.GetKey("erc20")), suite.network.App.AppCodec(),
 			authtypes.NewModuleAddress(govtypes.ModuleName),
 			suite.network.App.AccountKeeper, suite.network.App.BankKeeper,
 			mockEVMKeeper, suite.network.App.StakingKeeper,
@@ -214,7 +215,7 @@ func (suite *KeeperTestSuite) TestQueryERC20ForceFail() {
 		// TODO: what's the reason we are using mockEVMKeeper here? Instead of just passing the suite.app.EVMKeeper?
 		mockEVMKeeper = &erc20mocks.EVMKeeper{}
 		suite.network.App.Erc20Keeper = keeper.NewKeeper(
-			suite.network.App.GetKey("erc20"), suite.network.App.AppCodec(),
+			runtime.NewKVStoreService(suite.network.App.GetKey("erc20")), suite.network.App.AppCodec(),
 			authtypes.NewModuleAddress(govtypes.ModuleName), suite.network.App.AccountKeeper,
 			suite.network.App.BankKeeper, mockEVMKeeper, suite.network.App.StakingKeeper,
 			suite.network.App.AuthzKeeper, &suite.network.App.TransferKeeper,

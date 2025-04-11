@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"cosmossdk.io/math"
+	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
@@ -124,7 +125,7 @@ func (suite *KeeperTestSuite) TestConvertERC20NativeERC20() {
 			func() {
 				mockEVMKeeper := &erc20mocks.EVMKeeper{}
 				suite.network.App.Erc20Keeper = keeper.NewKeeper(
-					suite.network.App.GetKey("erc20"), suite.network.App.AppCodec(),
+					runtime.NewKVStoreService(suite.network.App.GetKey("erc20")), suite.network.App.AppCodec(),
 					authtypes.NewModuleAddress(govtypes.ModuleName), suite.network.App.AccountKeeper,
 					suite.network.App.BankKeeper, mockEVMKeeper, suite.network.App.StakingKeeper,
 					suite.network.App.AuthzKeeper, &suite.network.App.TransferKeeper,
@@ -151,7 +152,7 @@ func (suite *KeeperTestSuite) TestConvertERC20NativeERC20() {
 			func() {
 				mockEVMKeeper := &erc20mocks.EVMKeeper{}
 				suite.network.App.Erc20Keeper = keeper.NewKeeper(
-					suite.network.App.GetKey("erc20"), suite.network.App.AppCodec(),
+					runtime.NewKVStoreService(suite.network.App.GetKey("erc20")), suite.network.App.AppCodec(),
 					authtypes.NewModuleAddress(govtypes.ModuleName), suite.network.App.AccountKeeper,
 					suite.network.App.BankKeeper, mockEVMKeeper, suite.network.App.StakingKeeper,
 					suite.network.App.AuthzKeeper, &suite.network.App.TransferKeeper,
@@ -177,7 +178,7 @@ func (suite *KeeperTestSuite) TestConvertERC20NativeERC20() {
 			func() {
 				mockEVMKeeper := &erc20mocks.EVMKeeper{}
 				suite.network.App.Erc20Keeper = keeper.NewKeeper(
-					suite.network.App.GetKey("erc20"), suite.network.App.AppCodec(),
+					runtime.NewKVStoreService(suite.network.App.GetKey("erc20")), suite.network.App.AppCodec(),
 					authtypes.NewModuleAddress(govtypes.ModuleName), suite.network.App.AccountKeeper,
 					suite.network.App.BankKeeper, mockEVMKeeper, suite.network.App.StakingKeeper,
 					suite.network.App.AuthzKeeper, &suite.network.App.TransferKeeper,
@@ -204,7 +205,7 @@ func (suite *KeeperTestSuite) TestConvertERC20NativeERC20() {
 			func() {
 				mockEVMKeeper := &erc20mocks.EVMKeeper{}
 				suite.network.App.Erc20Keeper = keeper.NewKeeper(
-					suite.network.App.GetKey("erc20"), suite.network.App.AppCodec(),
+					runtime.NewKVStoreService(suite.network.App.GetKey("erc20")), suite.network.App.AppCodec(),
 					authtypes.NewModuleAddress(govtypes.ModuleName), suite.network.App.AccountKeeper,
 					suite.network.App.BankKeeper, mockEVMKeeper, suite.network.App.StakingKeeper,
 					suite.network.App.AuthzKeeper, &suite.network.App.TransferKeeper,
@@ -233,7 +234,7 @@ func (suite *KeeperTestSuite) TestConvertERC20NativeERC20() {
 				mockBankKeeper := erc20mocks.NewMockBankKeeper(ctrl)
 
 				suite.network.App.Erc20Keeper = keeper.NewKeeper(
-					suite.network.App.GetKey("erc20"), suite.network.App.AppCodec(),
+					runtime.NewKVStoreService(suite.network.App.GetKey("erc20")), suite.network.App.AppCodec(),
 					authtypes.NewModuleAddress(govtypes.ModuleName), suite.network.App.AccountKeeper,
 					mockBankKeeper, suite.network.App.EVMKeeper, suite.network.App.StakingKeeper,
 					suite.network.App.AuthzKeeper, &suite.network.App.TransferKeeper,
@@ -258,7 +259,7 @@ func (suite *KeeperTestSuite) TestConvertERC20NativeERC20() {
 				mockBankKeeper := erc20mocks.NewMockBankKeeper(ctrl)
 
 				suite.network.App.Erc20Keeper = keeper.NewKeeper(
-					suite.network.App.GetKey("erc20"), suite.network.App.AppCodec(),
+					runtime.NewKVStoreService(suite.network.App.GetKey("erc20")), suite.network.App.AppCodec(),
 					authtypes.NewModuleAddress(govtypes.ModuleName), suite.network.App.AccountKeeper,
 					mockBankKeeper, suite.network.App.EVMKeeper, suite.network.App.StakingKeeper,
 					suite.network.App.AuthzKeeper, &suite.network.App.TransferKeeper,
@@ -283,7 +284,7 @@ func (suite *KeeperTestSuite) TestConvertERC20NativeERC20() {
 				mockBankKeeper := erc20mocks.NewMockBankKeeper(ctrl)
 
 				suite.network.App.Erc20Keeper = keeper.NewKeeper(
-					suite.network.App.GetKey("erc20"), suite.network.App.AppCodec(),
+					runtime.NewKVStoreService(suite.network.App.GetKey("erc20")), suite.network.App.AppCodec(),
 					authtypes.NewModuleAddress(govtypes.ModuleName), suite.network.App.AccountKeeper,
 					mockBankKeeper, suite.network.App.EVMKeeper, suite.network.App.StakingKeeper,
 					suite.network.App.AuthzKeeper, &suite.network.App.TransferKeeper,

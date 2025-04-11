@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"cosmossdk.io/store/prefix"
+	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	cosmosevmtypes "github.com/cosmos/evm/types"
@@ -23,7 +24,7 @@ func (k Keeper) TokenPairs(c context.Context, req *types.QueryTokenPairsRequest)
 	ctx := sdk.UnwrapSDKContext(c)
 
 	var pairs []types.TokenPair
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixTokenPair)
+	store := prefix.NewStore(runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx)), types.KeyPrefixTokenPair)
 
 	pageRes, err := query.Paginate(store, req.Pagination, func(_, value []byte) error {
 		var pair types.TokenPair
