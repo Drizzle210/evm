@@ -94,7 +94,6 @@ func NewKeeper(
 		panic(err)
 	}
 
-	bankWrapper := wrappers.NewBankWrapper(bankKeeper)
 	feeMarketWrapper := wrappers.NewFeeMarketWrapper(fmk)
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
@@ -102,7 +101,7 @@ func NewKeeper(
 		cdc:              cdc,
 		authority:        authority,
 		accountKeeper:    ak,
-		bankWrapper:      bankWrapper,
+		bankWrapper:      bankKeeper, // assign direct to bank keeper because we use precisebank instead of bankwapper
 		stakingKeeper:    sk,
 		feeMarketWrapper: feeMarketWrapper,
 		storeService:     storeService,
@@ -116,11 +115,6 @@ func NewKeeper(
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", types.ModuleName)
-}
-
-// SetBankWrapper allow to override bank wrapper
-func (k *Keeper) SetBankWrapper(bw types.BankWrapper) {
-	k.bankWrapper = bw
 }
 
 // ----------------------------------------------------------------------------
