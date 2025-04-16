@@ -118,6 +118,11 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", types.ModuleName)
 }
 
+// SetBankWrapper allow to override bank wrapper
+func (k *Keeper) SetBankWrapper(bw types.BankWrapper) {
+	k.bankWrapper = bw
+}
+
 // ----------------------------------------------------------------------------
 // Block Bloom
 // Required by Web3 API.

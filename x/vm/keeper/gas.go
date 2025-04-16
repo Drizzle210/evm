@@ -42,7 +42,6 @@ func (k *Keeper) RefundGas(ctx sdk.Context, msg core.Message, leftoverGas uint64
 
 		// refund to sender from the fee collector module account, which is the escrow account in charge of collecting tx fees
 		recipientCosmosAddr := k.GetCosmosAddressMapping(ctx, msg.From())
-		// refund to sender from the fee collector module account, which is the escrow account in charge of collecting tx fees
 		err := k.bankWrapper.SendCoinsFromModuleToAccount(ctx, authtypes.FeeCollectorName, recipientCosmosAddr, refundedCoins)
 		if err != nil {
 			err = errorsmod.Wrapf(errortypes.ErrInsufficientFunds, "fee collector account failed to refund fees: %s", err.Error())
