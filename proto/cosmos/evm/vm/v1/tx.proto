@@ -218,9 +218,9 @@ message MsgSetMappingEvmAddress {
   option (cosmos.msg.v1.signer) = "signer";
 
   // signer cosmos address
-  string signer = 2;
+  string signer = 1;
   // public key that we will use to map cosmos to evm.
-  string pubkey = 3;
+  string pubkey = 2;
 }
 
 // MsgSetMappingEvmAddressResponse defines the response value from Msg/SetMappingEvmAddress.
