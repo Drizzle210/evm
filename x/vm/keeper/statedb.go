@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math/big"
 
-	"cosmossdk.io/math"
 	"cosmossdk.io/store/prefix"
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
@@ -114,28 +113,17 @@ func (k *Keeper) ForEachStorage(ctx sdk.Context, addr common.Address, cb func(ke
 func (k *Keeper) SetBalance(ctx sdk.Context, addr common.Address, amount *big.Int) error {
 	cosmosAddr := k.GetCosmosAddressMapping(ctx, addr)
 
-	// TODO: Check logic set balances here. Need to confirm that `amount` is decimals 18
-	params := k.GetParams(ctx)
-	coin := k.bankWrapper.GetBalance(ctx, cosmosAddr, params.EvmDenom)
-	balance := coin.Amount.BigInt()
-	delta := new(big.Int).Sub(amount, balance)
+	coin := k.bankWrapper.GetBalance(ctx, cosmosAddr, types.GetEVMCoinDenom())
+	delta := new(big.Int).Sub(amount, coin.Amount.BigInt())
 	switch delta.Sign() {
 	case 1:
 		// mint
-		coins := sdk.NewCoins(sdk.NewCoin(params.EvmDenom, math.NewIntFromBigInt(delta)))
-		if err := k.bankWrapper.MintCoins(ctx, types.ModuleName, coins); err != nil {
-			return err
-		}
-		if err := k.bankWrapper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, cosmosAddr, coins); err != nil {
+		if err := k.bankWrapper.MintAmountToAccount(ctx, cosmosAddr, delta); err != nil {
 			return err
 		}
 	case -1:
 		// burn
-		coins := sdk.NewCoins(sdk.NewCoin(params.EvmDenom, math.NewIntFromBigInt(new(big.Int).Neg(delta))))
-		if err := k.bankWrapper.SendCoinsFromAccountToModule(ctx, cosmosAddr, types.ModuleName, coins); err != nil {
-			return err
-		}
-		if err := k.bankWrapper.BurnCoins(ctx, types.ModuleName, coins); err != nil {
+		if err := k.bankWrapper.BurnAmountFromAccount(ctx, cosmosAddr, new(big.Int).Neg(delta)); err != nil {
 			return err
 		}
 	default:

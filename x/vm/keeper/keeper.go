@@ -94,6 +94,7 @@ func NewKeeper(
 		panic(err)
 	}
 
+	bankWrapper := wrappers.NewBankWrapper(bankKeeper)
 	feeMarketWrapper := wrappers.NewFeeMarketWrapper(fmk)
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
@@ -101,7 +102,7 @@ func NewKeeper(
 		cdc:              cdc,
 		authority:        authority,
 		accountKeeper:    ak,
-		bankWrapper:      bankKeeper, // assign direct to bank keeper because we use precisebank instead of bankwapper
+		bankWrapper:      bankWrapper, // assign direct to bank keeper because we use precisebank instead of bankwapper
 		stakingKeeper:    sk,
 		feeMarketWrapper: feeMarketWrapper,
 		storeService:     storeService,
@@ -260,9 +261,9 @@ func (k *Keeper) GetNonce(ctx sdk.Context, addr common.Address) uint64 {
 // GetBalance load account's balance of gas token.
 func (k *Keeper) GetBalance(ctx sdk.Context, addr common.Address) *big.Int {
 	cosmosAddr := k.GetCosmosAddressMapping(ctx, addr)
-	params := k.GetParams(ctx)
+
 	// Get the balance via bank wrapper to convert it to 18 decimals if needed.
-	coin := k.bankWrapper.GetBalance(ctx, cosmosAddr, params.EvmDenom)
+	coin := k.bankWrapper.GetBalance(ctx, cosmosAddr, types.GetEVMCoinDenom())
 
 	return coin.Amount.BigInt()
 }

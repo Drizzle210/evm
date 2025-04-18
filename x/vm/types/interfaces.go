@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"math/big"
 
 	"cosmossdk.io/core/address"
 	"cosmossdk.io/math"
@@ -71,6 +72,6 @@ type (
 type BankWrapper interface {
 	BankKeeper
 
-	// MintAmountToAccount(ctx context.Context, recipientAddr sdk.AccAddress, amt *big.Int) error
-	// BurnAmountFromAccount(ctx context.Context, account sdk.AccAddress, amt *big.Int) error
+	MintAmountToAccount(ctx context.Context, recipientAddr sdk.AccAddress, amt *big.Int) error
+	BurnAmountFromAccount(ctx context.Context, account sdk.AccAddress, amt *big.Int) error
 }
