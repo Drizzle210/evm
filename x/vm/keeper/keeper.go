@@ -260,9 +260,9 @@ func (k *Keeper) GetNonce(ctx sdk.Context, addr common.Address) uint64 {
 // GetBalance load account's balance of gas token.
 func (k *Keeper) GetBalance(ctx sdk.Context, addr common.Address) *big.Int {
 	cosmosAddr := k.GetCosmosAddressMapping(ctx, addr)
-
+	params := k.GetParams(ctx)
 	// Get the balance via bank wrapper to convert it to 18 decimals if needed.
-	coin := k.bankWrapper.GetBalance(ctx, cosmosAddr, types.GetEVMCoinDenom())
+	coin := k.bankWrapper.GetBalance(ctx, cosmosAddr, params.EvmDenom)
 
 	return coin.Amount.BigInt()
 }
